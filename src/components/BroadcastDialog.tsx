@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { X, Send, Upload, Image, Users, Clock, Plus, Trash2, FileText, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSettingsStore, useChatStore, useAccountStore, useTaskStore } from '@/hooks/useStore';
-import { cn, generateId, randomQueueInterval, QUEUE_INTERVAL_MIN, QUEUE_INTERVAL_MAX } from '@/lib/index';
+import { cn, generateId, randomQueueInterval, QUEUE_INTERVAL_MIN, QUEUE_INTERVAL_MAX, SUPABASE_CONFIGURED } from '@/lib/index';
 import type { BroadcastTask, QueueItem } from '@/lib/index';
 import { executeAdbCommand } from '@/api/duoplus';
 
@@ -167,7 +167,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
 
   // 启动后台任务（关闭弹窗后继续运行）
   const handleRun = () => {
-    if (!settings.apiKey) return;
+    if (!SUPABASE_CONFIGURED) return;
     const taskId = createTask({
       name: taskName,
       message,

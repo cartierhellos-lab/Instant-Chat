@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: example-anon-key
+          VITE_DUOPLUS_API_REGION: global
+
+  edge-function:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: supabase/edge_function
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.x
+
+      - name: Check function source exists
+        run: test -f duoplus-proxy/index.ts
+
+      - name: Deno fmt check
+        run: deno fmt --check duoplus-proxy/index.ts deps.ts
+
+      - name: Deno lint
+        run: deno lint duoplus-proxy/index.ts deps.ts

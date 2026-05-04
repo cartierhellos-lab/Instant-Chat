@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { MessageSquare, ListTodo, Settings, RefreshCw, Wifi, WifiOff, Phone, Users, Smartphone, ShieldCheck } from 'lucide-react';
-import { ROUTE_PATHS } from '@/lib/index';
+import { ROUTE_PATHS, SUPABASE_CONFIGURED } from '@/lib/index';
 import { useSettingsStore, useChatStore, useAdminStore } from '@/hooks/useStore';
 import { cn } from '@/lib/index';
 
@@ -20,14 +20,14 @@ export default function Layout() {
   }, [settings.accessKey, settings.apiKey]);
 
   // ── 数据初始化 & 轮询 ─────────────────────────────────────
-  // 依赖 apiKey/region/interval 三者中任一变化就重新启动
+  // 依赖 region/interval 变化时重新启动
   useEffect(() => {
-    if (!settings.apiKey) {
+    if (!SUPABASE_CONFIGURED) {
       stopPolling();
       pollingKey.current = '';
       return;
     }
-    const newKey = `${settings.apiKey}|${settings.apiRegion}|${settings.pollInterval}`;
+    const newKey = `${settings.apiRegion}|${settings.pollInterval}`;
     // 防止重复启动（React StrictMode 在开发环境会 mount 两次）
     if (pollingKey.current === newKey) return;
     pollingKey.current = newKey;
@@ -40,7 +40,7 @@ export default function Layout() {
       stopPolling();
       pollingKey.current = '';
     };
-  }, [settings.apiKey, settings.apiRegion, settings.pollInterval]);
+  }, [settings.apiRegion, settings.pollInterval]);
 
   const isAdmin = currentRole === 'admin';
 
@@ -105,7 +105,7 @@ export default function Layout() {
               <WifiOff className="w-3.5 h-3.5 text-destructive" />
             </div>
           )}
-          {settings.apiKey && !lastError && !isLoading && (
+          {SUPABASE_CONFIGURED && !lastError && !isLoading && (
             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
               <Wifi className="w-3.5 h-3.5 text-primary" />
             </div>

@@ -3,7 +3,7 @@ import { Upload, Users, Trash2, RefreshCw, Search, Download, CheckSquare, Square
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccountStore, useChatStore, useSettingsStore } from '@/hooks/useStore';
 import { parseTxtAccounts } from '@/api/duoplus';
-import { cn, statusColor, statusLabel, formatTime } from '@/lib/index';
+import { cn, statusColor, statusLabel, formatTime, SUPABASE_CONFIGURED } from '@/lib/index';
 import type { AccountStatus, TextNowAccount } from '@/lib/index';
 
 const STATUS_FILTERS: { label: string; value: AccountStatus | 'all' }[] = [
@@ -151,7 +151,7 @@ export default function Accounts() {
   };
 
   const handleInject = async (acc: TextNowAccount) => {
-    if (!settings.apiKey) { alert('请先配置 API Key'); return; }
+    if (!SUPABASE_CONFIGURED) { alert('请先配置 Supabase 代理'); return; }
     if (!acc.assignedPhoneId) { alert('账号未绑定设备'); return; }
     setInjectingId(acc.id);
     const r = await injectAccount(acc.assignedPhoneId, acc.id, settings.apiKey, settings.apiRegion, settings.adbCommandTemplate);

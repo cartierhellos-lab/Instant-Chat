@@ -6,7 +6,7 @@ import type {
   SubAccount, AppRole,
 } from '@/lib/index';
 import {
-  DEFAULT_SETTINGS, generateId, MAX_SLOTS, buildAdbCommand, generateSubKey,
+  DEFAULT_SETTINGS, generateId, MAX_SLOTS, buildAdbCommand, generateSubKey, SUPABASE_CONFIGURED,
 } from '@/lib/index';
 import { fetchCloudNumbers, fetchSmsList, fetchCloudPhones, executeAdbCommand, writeSmsByPhone } from '@/api/duoplus';
 import type { TextNowRawAccount } from '@/api/duoplus';
@@ -114,7 +114,7 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
     set((state) => ({ conversations: state.conversations.map((c) => c.id === conversationId ? { ...c, unreadCount: 0 } : c) })),
 
   loadNumbers: async (apiKey, region) => {
-    if (!apiKey) return;
+    if (!SUPABASE_CONFIGURED) return;
     set({ isLoading: true, lastError: null });
     try {
       const numbers = await fetchCloudNumbers(apiKey, region);
@@ -128,7 +128,7 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
   },
 
   loadCloudPhones: async (apiKey, region) => {
-    if (!apiKey) return;
+    if (!SUPABASE_CONFIGURED) return;
     try {
       const phones = await fetchCloudPhones(apiKey, region);
       set({
@@ -143,7 +143,7 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
   },
 
   pollMessages: async (apiKey, region) => {
-    if (!apiKey) return;
+    if (!SUPABASE_CONFIGURED) return;
     const { conversations } = get();
     for (const conv of conversations) {
       try {

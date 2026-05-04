@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, Loader2, Shield, Users } from 'lucide-react';
 import { useSettingsStore, useAdminStore, useChatStore } from '@/hooks/useStore';
-import { ROUTE_PATHS } from '@/lib/index';
+import { ROUTE_PATHS, SUPABASE_CONFIGURED } from '@/lib/index';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -41,32 +41,29 @@ export default function LoginPage() {
     setError('');
     await new Promise(r => setTimeout(r, 500));
 
-    // ── 管理员判断 ─────────────────────────────────────────────
-    // 规则：输入的 key 与已保存的 apiKey 相同 → 管理员
-    //       首次登录（apiKey 尚未设置）且 key 看起来是合法 UUID → 视为管理员 API Key
-    const savedApiKey = settings.apiKey;
-    const isFirstTime = !savedApiKey;
-    const isAdminKey = savedApiKey && trimmed === savedApiKey;
-    const looksLikeApiKey = /^[0-9a-f-]{32,}$/i.test(trimmed); // UUID 格式
+    const savedAdminKey = settings.apiKey;
+    const isFirstTime = !savedAdminKey;
+    const isAdminKey = Boolean(savedAdminKey) && trimmed === savedAdminKey;
 
     // ── 子账号判断 ─────────────────────────────────────────────
     const matchedSub = subAccounts.find(s => s.key === trimmed);
 
-    if (isFirstTime && looksLikeApiKey) {
-      // 首次登录：将输入的 key 作为 DuoPlus API Key 保存
-      // accessKey = '' 表示当前用户是管理员
+    if (isFirstTime) {
       updateSettings({ apiKey: trimmed, accessKey: '' });
       setRole('admin');
-      startPolling(trimmed, settings.apiRegion, settings.pollInterval);
+      if (SUPABASE_CONFIGURED) {
+        startPolling(trimmed, settings.apiRegion, settings.pollInterval);
+      }
       navigate(ROUTE_PATHS.HOME, { replace: true });
       return;
     }
 
     if (isAdminKey) {
-      // 已有 apiKey，且输入匹配 → 管理员登录
-      updateSettings({ accessKey: '' }); // '' = admin
+      updateSettings({ accessKey: '' });
       setRole('admin');
-      startPolling(savedApiKey, settings.apiRegion, settings.pollInterval);
+      if (SUPABASE_CONFIGURED) {
+        startPolling(savedAdminKey, settings.apiRegion, settings.pollInterval);
+      }
       navigate(ROUTE_PATHS.HOME, { replace: true });
       return;
     }
@@ -75,17 +72,15 @@ export default function LoginPage() {
       // 子账号登录
       updateSettings({ accessKey: trimmed });
       setRole('user', matchedSub.id);
-      // 子账号也可以使用 API（用管理员的 apiKey 操作其分配的资源）
-      if (savedApiKey) {
-        startPolling(savedApiKey, settings.apiRegion, settings.pollInterval);
+      if (SUPABASE_CONFIGURED) {
+        startPolling(savedAdminKey, settings.apiRegion, settings.pollInterval);
       }
       navigate(ROUTE_PATHS.HOME, { replace: true });
       return;
     }
 
-    // 无匹配
-    if (isFirstTime && !looksLikeApiKey) {
-      setError('格式不正确，请输入 CartierMiller API Key（UUID格式）');
+    if (!SUPABASE_CONFIGURED) {
+      setError('前端未配置 Supabase 连接信息');
     } else {
       setError('密钥无效，请联系管理员获取访问权限');
     }
@@ -137,7 +132,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-white text-xl font-bold tracking-wide">Instant Chat</h1>
-          <p className="text-white/55 text-xs">CartierMiller 智能管理平台</p>
+          <p className="text-white/55 text-xs">DuoPlus 智能管理平台</p>
         </div>
 
         <div className="w-full h-px" style={{ background: 'rgba(255,255,255,0.15)' }} />
@@ -146,7 +141,7 @@ export default function LoginPage() {
         <div className="w-full grid grid-cols-2 gap-2 text-[10px]">
           <div className="flex items-start gap-1.5 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <Shield size={11} className="text-white/70 mt-0.5 shrink-0" />
-            <span className="text-white/60 leading-relaxed">管理员<br/>输入 CartierMiller API Key</span>
+            <span className="text-white/60 leading-relaxed">管理员<br/>输入访问密钥</span>
           </div>
           <div className="flex items-start gap-1.5 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <Users size={11} className="text-white/70 mt-0.5 shrink-0" />
@@ -163,7 +158,7 @@ export default function LoginPage() {
               value={key}
               onChange={e => { setKey(e.target.value); setError(''); }}
               onKeyDown={handleKeyDown}
-              placeholder="粘贴 CartierMiller API Key 或子账号密钥…"
+              placeholder="输入管理员访问密钥或子账号密钥…"
               autoComplete="off"
               className="w-full pr-10 pl-4 py-3 rounded-xl text-sm text-white placeholder:text-white/35 outline-none transition-all"
               style={{

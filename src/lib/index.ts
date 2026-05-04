@@ -173,6 +173,25 @@ export const API_BASE: Record<ApiRegion, string> = {
   global: 'https://openapi.duoplus.net',
 };
 
+export const SUPABASE_CONFIGURED = Boolean(
+  import.meta.env.VITE_SUPABASE_URL?.trim() &&
+  import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
+);
+
+function resolveDefaultRegion(): ApiRegion {
+  return import.meta.env.VITE_DUOPLUS_API_REGION === 'cn' ? 'cn' : 'global';
+}
+
+function resolveDefaultPollInterval(): number {
+  const raw = Number(import.meta.env.VITE_DUOPLUS_POLL_INTERVAL);
+  if (!Number.isFinite(raw)) return 5;
+  return Math.max(3, Math.min(60, Math.round(raw)));
+}
+
+function resolveDefaultAdbTemplate(): string {
+  return import.meta.env.VITE_DUOPLUS_ADB_TEMPLATE?.trim() || DEFAULT_ADB_TEMPLATE;
+}
+
 export const MAX_SLOTS = 10;
 
 /** 群发轮次最小间隔(秒) */
@@ -185,9 +204,9 @@ export const DEFAULT_ADB_TEMPLATE =
 
 export const DEFAULT_SETTINGS: AppSettings = {
   apiKey: '',
-  apiRegion: 'cn',
-  pollInterval: 5,
-  adbCommandTemplate: DEFAULT_ADB_TEMPLATE,
+  apiRegion: resolveDefaultRegion(),
+  pollInterval: resolveDefaultPollInterval(),
+  adbCommandTemplate: resolveDefaultAdbTemplate(),
   accessKey: undefined,  // undefined = 未登录；'' = 管理员已登录；'xxx' = 子账号已登录
 };
 

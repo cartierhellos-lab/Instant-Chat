@@ -1,4 +1,4 @@
-import { API_BASE, type ApiRegion, type CloudNumber, type SmsMessage } from '@/lib/index';
+import { type ApiRegion, type CloudNumber, type SmsMessage } from '@/lib/index';
 
 interface ApiResponse<T> {
   code: number;
@@ -6,25 +6,37 @@ interface ApiResponse<T> {
   message: string;
 }
 
-function getBaseUrl(region: ApiRegion): string {
-  return API_BASE[region];
+function getProxyBaseUrl(): string {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+  if (!supabaseUrl) {
+    throw new Error('Missing VITE_SUPABASE_URL');
+  }
+  return `${supabaseUrl.replace(/\/+$/, '')}/functions/v1/duoplus-proxy`;
 }
 
 async function request<T>(
-  apiKey: string,
+  _apiKey: string,
   region: ApiRegion,
   endpoint: string,
   body: Record<string, unknown>
 ): Promise<ApiResponse<T>> {
-  const baseUrl = getBaseUrl(region);
-  const resp = await fetch(`${baseUrl}${endpoint}`, {
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+  if (!anonKey) {
+    throw new Error('Missing VITE_SUPABASE_ANON_KEY');
+  }
+
+  const resp = await fetch(getProxyBaseUrl(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'DuoPlus-API-Key': apiKey,  // API 协议字段，不对外展示
-      'Lang': 'zh',
+      'Authorization': `Bearer ${anonKey}`,
+      'apikey': anonKey,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      endpoint,
+      region,
+      body,
+    }),
   });
 
   if (!resp.ok) {

@@ -225,7 +225,7 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {cloudPhones.length === 0 && (
                     <p className="text-sm text-muted-foreground col-span-2 py-8 text-center">
-                      暂无设备，请先在设置里配置 CartierMiller API Key
+                      暂无设备，请先在设置里配置 Supabase 代理
                     </p>
                   )}
                   {cloudPhones.map((phone) => {

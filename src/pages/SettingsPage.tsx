@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Settings, Key, Globe, RefreshCw, Check, AlertCircle, Wifi, WifiOff, Terminal, LogOut, ShieldCheck, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSettingsStore, useChatStore, useAdminStore } from '@/hooks/useStore';
-import { cn, DEFAULT_ADB_TEMPLATE, ROUTE_PATHS } from '@/lib/index';
+import { cn, DEFAULT_ADB_TEMPLATE, ROUTE_PATHS, SUPABASE_CONFIGURED } from '@/lib/index';
 import { fetchCloudNumbers } from '@/api/duoplus';
 
 export default function SettingsPage() {
@@ -10,7 +10,6 @@ export default function SettingsPage() {
   const { settings, updateSettings } = useSettingsStore();
   const { cloudNumbers, loadNumbers, lastError, stopPolling } = useChatStore();
   const { currentRole } = useAdminStore();
-  const [apiKey, setApiKey] = useState(settings.apiKey);
   const [region, setRegion] = useState(settings.apiRegion);
   const [pollInterval, setPollInterval] = useState(settings.pollInterval);
   const [adbTemplate, setAdbTemplate] = useState(settings.adbCommandTemplate || DEFAULT_ADB_TEMPLATE);
@@ -20,19 +19,18 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setApiKey(settings.apiKey);
     setRegion(settings.apiRegion);
     setPollInterval(settings.pollInterval);
     setAdbTemplate(settings.adbCommandTemplate || DEFAULT_ADB_TEMPLATE);
   }, [settings]);
 
   const handleTest = async () => {
-    if (!apiKey) return;
+    if (!SUPABASE_CONFIGURED) return;
     setTesting(true);
     setTestResult('idle');
     setTestMsg('');
     try {
-      const numbers = await fetchCloudNumbers(apiKey, region);
+      const numbers = await fetchCloudNumbers(settings.apiKey, region);
       setTestResult('ok');
       setTestMsg(`连接成功，共获取到 ${numbers.length} 个云号码`);
     } catch (e) {
@@ -45,13 +43,12 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     updateSettings({
-      apiKey,
       apiRegion: region,
       pollInterval: Math.max(3, Math.min(60, pollInterval)),
       adbCommandTemplate: adbTemplate,
       // 不覆盖 accessKey，由登录页管理
     });
-    loadNumbers(apiKey, region);
+    loadNumbers(settings.apiKey, region);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -70,7 +67,7 @@ export default function SettingsPage() {
         </div>
         <div>
           <h1 className="text-base font-semibold text-foreground">系统设置</h1>
-          <p className="text-xs text-muted-foreground">配置 CartierMiller API 连接参数</p>
+          <p className="text-xs text-muted-foreground">配置 Supabase 代理与本地访问参数</p>
         </div>
       </div>
 
@@ -92,50 +89,50 @@ export default function SettingsPage() {
               {lastError ? '连接失败' : cloudNumbers.length > 0 ? `已连接 · ${cloudNumbers.length} 个云号码` : '未连接'}
             </p>
             {lastError && <p className="text-xs text-destructive font-mono truncate mt-0.5">{lastError}</p>}
-            {!lastError && settings.apiKey && cloudNumbers.length > 0 && (
+            {!lastError && SUPABASE_CONFIGURED && cloudNumbers.length > 0 && (
               <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                API Key: {maskApiKey(settings.apiKey)} · {settings.apiRegion === 'cn' ? '中国大陆节点' : '国际节点'}
+                Supabase Proxy 已连接 · {settings.apiRegion === 'global' ? '主域名' : '备用域名'}
               </p>
             )}
           </div>
         </div>
 
-        {/* API Key */}
+        {/* Admin key */}
         <div className="rounded-xl border border-border bg-card p-5 space-y-4">
           <div className="flex items-center gap-2 mb-1">
             <Key className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">API 密钥</h2>
+            <h2 className="text-sm font-semibold text-foreground">访问密钥</h2>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-              CartierMiller API Key
+              管理员访问密钥
             </label>
             <input
               type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="请输入您的 API Key（在控制台「自动化」→「API」获取）"
+              value={settings.apiKey}
+              onChange={(e) => updateSettings({ apiKey: e.target.value })}
+              placeholder="请输入管理员访问密钥"
               className="w-full px-3 py-2.5 rounded-lg bg-muted border border-border text-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring/30 outline-none transition-all"
             />
             <p className="text-[10px] text-muted-foreground mt-1">
-              在 CartierMiller 控制台获取 API Key
+              仅用于本地管理员登录，不会直接发送到 DuoPlus
             </p>
           </div>
 
           {/* Test connection */}
           <button
             onClick={handleTest}
-            disabled={!apiKey || testing}
+            disabled={!SUPABASE_CONFIGURED || testing}
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-              apiKey && !testing
+              SUPABASE_CONFIGURED && !testing
                 ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                 : 'bg-muted text-muted-foreground cursor-not-allowed'
             )}
           >
             {testing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
-            测试连接
+            测试代理连接
           </button>
 
           {testResult !== 'idle' && (
@@ -161,7 +158,7 @@ export default function SettingsPage() {
               API 节点区域
             </label>
             <div className="flex gap-2">
-              {(['cn', 'global'] as const).map((r) => (
+              {(['global', 'cn'] as const).map((r) => (
                 <button
                   key={r}
                   onClick={() => setRegion(r)}
@@ -172,9 +169,9 @@ export default function SettingsPage() {
                       : 'border-border bg-muted text-muted-foreground hover:bg-muted/80'
                   )}
                 >
-                  {r === 'cn' ? '🇨🇳 中国大陆' : '🌍 国际节点'}
+                  {r === 'global' ? '🌍 主域名' : '🇭🇰 备用域名'}
                   <div className="text-[10px] font-mono opacity-70 mt-0.5">
-                    {r === 'cn' ? 'api.carriermiller.cn' : 'api.carriermiller.net'}
+                    {r === 'global' ? 'openapi.duoplus.net' : 'hkd.llc'}
                   </div>
                 </button>
               ))}
@@ -264,7 +261,7 @@ export default function SettingsPage() {
             </p>
             <p className="text-xs text-muted-foreground font-mono truncate">
               {currentRole === 'admin'
-                ? (settings.apiKey ? maskApiKey(settings.apiKey) : '未设置 CartierMiller API Key')
+                ? (settings.apiKey ? maskApiKey(settings.apiKey) : '未设置管理员访问密钥')
                 : `密钥: ${settings.accessKey ? maskApiKey(settings.accessKey) : '—'}`
               }
             </p>

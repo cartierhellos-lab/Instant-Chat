@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Smartphone, Zap, RefreshCw, Plus, Check, AlertCircle, ChevronRight, ArrowRightLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAccountStore, useChatStore, useSettingsStore } from '@/hooks/useStore';
-import { cn, MAX_SLOTS, statusColor, statusLabel } from '@/lib/index';
+import { cn, MAX_SLOTS, statusColor, statusLabel, SUPABASE_CONFIGURED } from '@/lib/index';
 import type { PhoneBinding, TextNowAccount } from '@/lib/index';
 
 // ============================================================
@@ -126,7 +126,7 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
 
   const handleInjectSlot = async (slot: number) => {
     const accId = binding.slots[slot];
-    if (!accId || !settings.apiKey) return;
+    if (!accId || !SUPABASE_CONFIGURED) return;
     setInjectingId(accId);
     const r = await injectAccount(phoneId, accId, settings.apiKey, settings.apiRegion, settings.adbCommandTemplate);
     setMsg(r.success ? `槽${slot + 1} 注入成功` : `槽${slot + 1} 注入失败: ${r.message}`);
@@ -134,7 +134,7 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
   };
 
   const handleInjectAll = async () => {
-    if (!settings.apiKey) { setMsg('请先配置 API Key'); return; }
+    if (!SUPABASE_CONFIGURED) { setMsg('请先配置 Supabase 代理'); return; }
     let ok = 0;
     for (let i = 0; i < MAX_SLOTS; i++) {
       const accId = binding.slots[i];
@@ -149,7 +149,7 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
   };
 
   const handleAutoReplace = async () => {
-    if (!settings.apiKey) { setMsg('请先配置 API Key'); return; }
+    if (!SUPABASE_CONFIGURED) { setMsg('请先配置 Supabase 代理'); return; }
     const r = await autoReplace(phoneId, settings.apiKey, settings.apiRegion, settings.adbCommandTemplate);
     setMsg(r.replaced ? `补号成功，已注入新账号` : '无可用账号可补充');
   };
@@ -247,7 +247,7 @@ export default function Phones() {
   const [loading, setLoading] = useState(false);
 
   const handleRefresh = async () => {
-    if (!settings.apiKey) return;
+    if (!SUPABASE_CONFIGURED) return;
     setLoading(true);
     await loadCloudPhones(settings.apiKey, settings.apiRegion);
     setLoading(false);
@@ -268,7 +268,7 @@ export default function Phones() {
             {cloudPhones.length} 台设备 · {usedSlots}/{totalSlots} 槽位已分配
           </p>
         </div>
-        <button onClick={handleRefresh} disabled={loading || !settings.apiKey}
+        <button onClick={handleRefresh} disabled={loading || !SUPABASE_CONFIGURED}
           className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-xs hover:bg-muted/80 transition-colors disabled:opacity-50">
           <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
           刷新设备
@@ -280,7 +280,7 @@ export default function Phones() {
           <div className="flex flex-col items-center justify-center h-full text-center">
             <AlertCircle className="w-12 h-12 text-muted-foreground/30 mb-3" />
             <p className="text-sm text-muted-foreground">暂无设备数据</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">请先在设置中配置 API Key，再点击"刷新设备"</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">请先在设置中配置 Supabase 代理，再点击“刷新设备”</p>
           </div>
         ) : (
           cloudPhones.map((phone) => <PhoneCard key={phone.id} phoneId={phone.id} />)

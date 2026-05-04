@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Search, Plus, Send, RefreshCw, MessageSquare, Languages, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore, useSettingsStore } from '@/hooks/useStore';
-import { cn, formatTime, getInitials } from '@/lib/index';
+import { cn, formatTime, getInitials, SUPABASE_CONFIGURED } from '@/lib/index';
 import { writeSmsByPhone } from '@/api/duoplus';
 import BroadcastDialog from '@/components/BroadcastDialog';
 import type { Conversation } from '@/lib/index';
@@ -134,14 +134,14 @@ function ChatPanel({ conv }: { conv: Conversation }) {
     setInput(''); setTranslated('');
     setSending(true);
     try {
-      if (settings.apiKey) {
+      if (SUPABASE_CONFIGURED) {
         await writeSmsByPhone(settings.apiKey, settings.apiRegion, conv.cloudNumber.id, [
           { phone: conv.contactNumber, message: text },
         ]);
       }
       sendOutboundMessage(conv.id, text);
       // 发送后 2s 立即拉取一次最新消息（减少延迟感）
-      if (settings.apiKey) {
+      if (SUPABASE_CONFIGURED) {
         setTimeout(() => pollMessages(settings.apiKey, settings.apiRegion), 2000);
       }
     } catch {
@@ -272,7 +272,7 @@ function ChatPanel({ conv }: { conv: Conversation }) {
           </button>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1.5">
-          CartierMiller API 写入 · Enter 发送原文{translateOn ? ' · 点击「发译文」发送翻译后内容' : ''}
+          DuoPlus API 写入 · Enter 发送原文{translateOn ? ' · 点击「发译文」发送翻译后内容' : ''}
         </p>
       </div>
     </div>
@@ -340,7 +340,7 @@ export default function Home() {
           {sorted.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center px-4">
               <MessageSquare className="w-8 h-8 text-muted-foreground/20 mb-2" />
-              <p className="text-xs text-muted-foreground">{conversations.length === 0 ? '请在设置中配置 API Key' : '无匹配'}</p>
+              <p className="text-xs text-muted-foreground">{conversations.length === 0 ? '请在设置中配置 Supabase 代理' : '无匹配'}</p>
             </div>
           ) : sorted.map((conv) => (
             <ConvItem key={conv.id} conv={conv} isActive={conv.id === activeConversationId} onClick={() => setActiveConversation(conv.id)} />
