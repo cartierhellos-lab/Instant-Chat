@@ -8,7 +8,7 @@ import type {
 import {
   DEFAULT_SETTINGS, generateId, MAX_SLOTS, buildAdbCommand, generateSubKey,
 } from '@/lib/index';
-import { fetchCloudNumbers, fetchSmsList, fetchCloudPhones, executeAdbCommand } from '@/api/duoplus';
+import { fetchCloudNumbers, fetchSmsList, fetchCloudPhones, executeAdbCommand, writeSmsByPhone } from '@/api/duoplus';
 import type { TextNowRawAccount } from '@/api/duoplus';
 
 // ============================================================
@@ -404,29 +404,43 @@ export const useAccountStore = create<AccountStore>()(
 
 interface TaskStore {
   tasks: BroadcastTask[];
+  /** 后台运行中的任务ID → abort控制器 */
+  _abortMap: Map<string, { abort: boolean }>;
+
   createTask: (task: Omit<BroadcastTask, 'id' | 'createdAt' | 'progress' | 'successCount' | 'failCount' | 'results'>) => string;
   updateTask: (id: string, patch: Partial<BroadcastTask>) => void;
   updateTaskResult: (taskId: string, result: TaskResult) => void;
   deleteTask: (id: string) => void;
+  /** 启动后台队列执行（关闭弹窗后继续运行） */
+  runTaskInBackground: (
+    taskId: string,
+    apiKey: string,
+    region: 'cn' | 'global',
+    onItemDone?: (taskId: string, itemId: string, success: boolean) => void,
+  ) => void;
+  abortTask: (taskId: string) => void;
 }
 
 export const useTaskStore = create<TaskStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       tasks: [] as BroadcastTask[],
+      _abortMap: new Map<string, { abort: boolean }>(),
 
       createTask: (partial) => {
         const id = generateId();
-        const targetIds = partial.mode === 'textnow' ? partial.targetPhones : partial.targetNumbers;
         const task: BroadcastTask = {
           ...partial,
           id,
           progress: 0,
           successCount: 0,
           failCount: 0,
-          results: targetIds.map((numberId) => ({
-            numberId, number: '', contactNumber: '',
-            status: 'pending', message: partial.message,
+          results: partial.queue.map((item) => ({
+            numberId: item.numberId,
+            number: item.numberId,
+            contactNumber: item.targetNumber,
+            status: 'pending' as const,
+            message: item.message,
           })),
           createdAt: new Date().toISOString(),
         };
@@ -455,10 +469,125 @@ export const useTaskStore = create<TaskStore>()(
           }),
         })),
 
-      deleteTask: (id) =>
-        set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) })),
+      deleteTask: (id) => {
+        get().abortTask(id);
+        set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
+      },
+
+      abortTask: (taskId) => {
+        const ctrl = get()._abortMap.get(taskId);
+        if (ctrl) ctrl.abort = true;
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId && t.status === 'running' ? { ...t, status: 'paused' } : t
+          ),
+        }));
+      },
+
+      runTaskInBackground: (taskId, apiKey, region, onItemDone) => {
+        const ctrl = { abort: false };
+        get()._abortMap.set(taskId, ctrl);
+        get().updateTask(taskId, { status: 'running' });
+
+        const task = get().tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        // 异步后台执行，不 await，不阻塞 UI
+        (async () => {
+          for (let i = 0; i < task.queue.length; i++) {
+            if (ctrl.abort) break;
+            const item = task.queue[i];
+
+            // 等待到预定发送时间
+            const waitMs = item.scheduledAt - Date.now();
+            if (waitMs > 500) {
+              let waited = 0;
+              while (waited < waitMs && !ctrl.abort) {
+                await new Promise(r => setTimeout(r, Math.min(1000, waitMs - waited)));
+                waited += 1000;
+              }
+            }
+            if (ctrl.abort) break;
+
+            // 更新为 sending 状态
+            set((state) => ({
+              tasks: state.tasks.map(t => {
+                if (t.id !== taskId) return t;
+                return {
+                  ...t,
+                  queue: t.queue.map(q => q.id === item.id ? { ...q, status: 'sending' as const } : q),
+                };
+              }),
+            }));
+
+            try {
+              if (task.mode === 'cloud_number') {
+                await writeSmsByPhone(apiKey, region, item.numberId, [
+                  { phone: item.targetNumber, message: item.message }
+                ]);
+              }
+
+              // 成功
+              set((state) => ({
+                tasks: state.tasks.map(t => {
+                  if (t.id !== taskId) return t;
+                  const queue = t.queue.map(q =>
+                    q.id === item.id ? { ...q, status: 'success' as const, sentAt: new Date().toISOString() } : q
+                  );
+                  const success = queue.filter(q => q.status === 'success').length;
+                  const failed = queue.filter(q => q.status === 'failed').length;
+                  const done = success + failed;
+                  return {
+                    ...t, queue,
+                    successCount: success, failCount: failed,
+                    progress: Math.round((done / queue.length) * 100),
+                  };
+                }),
+              }));
+              onItemDone?.(taskId, item.id, true);
+
+            } catch (e) {
+              set((state) => ({
+                tasks: state.tasks.map(t => {
+                  if (t.id !== taskId) return t;
+                  const queue = t.queue.map(q =>
+                    q.id === item.id
+                      ? { ...q, status: 'failed' as const, error: (e as Error).message }
+                      : q
+                  );
+                  const success = queue.filter(q => q.status === 'success').length;
+                  const failed = queue.filter(q => q.status === 'failed').length;
+                  const done = success + failed;
+                  return {
+                    ...t, queue,
+                    successCount: success, failCount: failed,
+                    progress: Math.round((done / queue.length) * 100),
+                  };
+                }),
+              }));
+              onItemDone?.(taskId, item.id, false);
+            }
+          }
+
+          // 全部完成或中止
+          const finalTask = get().tasks.find(t => t.id === taskId);
+          if (finalTask && finalTask.status === 'running') {
+            const allSuccess = finalTask.queue.every(q => q.status === 'success' || q.status === 'failed' || q.status === 'waiting');
+            get().updateTask(taskId, {
+              status: ctrl.abort ? 'paused' : (finalTask.failCount === finalTask.queue.length ? 'failed' : 'completed'),
+              completedAt: ctrl.abort ? undefined : new Date().toISOString(),
+              progress: ctrl.abort ? finalTask.progress : 100,
+            });
+          }
+          get()._abortMap.delete(taskId);
+        })();
+      },
     }),
-    { name: 'duoplus-tasks' }
+    {
+      name: 'duoplus-tasks',
+      // _abortMap 是运行时状态，不持久化
+      partialize: (state) => ({ tasks: state.tasks }),
+    }
   )
 );
 

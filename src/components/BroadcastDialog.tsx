@@ -24,7 +24,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
   const { settings } = useSettingsStore();
   const { cloudNumbers, cloudPhones } = useChatStore();
   const { accounts, bindings } = useAccountStore();
-  const { createTask } = useTaskStore();
+  const { createTask, runTaskInBackground, abortTask, tasks } = useTaskStore();
 
   const [mode, setMode] = useState<'cloud_number' | 'textnow'>('cloud_number');
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -44,20 +44,21 @@ export default function BroadcastDialog({ open, onClose }: Props) {
   // Step 3: queue preview
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [taskName, setTaskName] = useState('');
-  const [running, setRunning] = useState(false);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [sent, setSent] = useState(0);
-  const abortRef = useRef(false);
+  const activeTask = tasks.find(t => t.id === activeTaskId);
+  const running = activeTask?.status === 'running';
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setStep(1); setMessage(''); setImageUrl(''); setImagePreview('');
     setContactRaw(''); setContacts([]); setSelectedSenders([]);
-    setQueue([]); setTaskName(''); setRunning(false); setSent(0);
-    abortRef.current = false;
+    setQueue([]); setTaskName(''); setActiveTaskId(null); setSent(0);
   };
 
-  const handleClose = () => { if (!running) { reset(); onClose(); } };
+  // 关闭弹窗不中断后台任务
+  const handleClose = () => { reset(); onClose(); };
 
   // Handle local image selection → convert to data URL for preview
   const handleImageFile = (file: File) => {
@@ -164,11 +165,9 @@ export default function BroadcastDialog({ open, onClose }: Props) {
     setStep(3);
   };
 
-  // Execute the queue
-  const handleRun = async () => {
+  // 启动后台任务（关闭弹窗后继续运行）
+  const handleRun = () => {
     if (!settings.apiKey) return;
-    setRunning(true);
-    abortRef.current = false;
     const taskId = createTask({
       name: taskName,
       message,
@@ -178,33 +177,16 @@ export default function BroadcastDialog({ open, onClose }: Props) {
       targetPhones: mode === 'textnow' ? selectedSenders : [],
       intervalMin: QUEUE_INTERVAL_MIN,
       intervalMax: QUEUE_INTERVAL_MAX,
-      status: 'running',
+      status: 'pending',
       queue,
     });
-    void taskId;
-
-    for (let i = 0; i < queue.length; i++) {
-      if (abortRef.current) break;
-      const item = queue[i];
-      const waitMs = item.scheduledAt - Date.now();
-      if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs));
-      if (abortRef.current) break;
-
-      setQueue((prev) => prev.map((q) => q.id === item.id ? { ...q, status: 'sending' } : q));
-
-      try {
-        // Simulate send (real implementation would call DuoPlus API)
-        await new Promise((r) => setTimeout(r, 1200));
-        setQueue((prev) => prev.map((q) => q.id === item.id ? { ...q, status: 'success', sentAt: new Date().toISOString() } : q));
-        setSent((s) => s + 1);
-      } catch (e) {
-        setQueue((prev) => prev.map((q) => q.id === item.id ? { ...q, status: 'failed', error: (e as Error).message } : q));
-      }
-    }
-    setRunning(false);
+    setActiveTaskId(taskId);
+    runTaskInBackground(taskId, settings.apiKey, settings.apiRegion, (_tid, _iid, ok) => {
+      if (ok) setSent(s => s + 1);
+    });
   };
 
-  const handleAbort = () => { abortRef.current = true; };
+  const handleAbort = () => { if (activeTaskId) abortTask(activeTaskId); };
 
   const totalDurationSec = queue.length > 0
     ? Math.round(((QUEUE_INTERVAL_MIN + QUEUE_INTERVAL_MAX) / 2) * (queue.length - 1))
@@ -252,7 +234,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                   </button>
                 ))}
               </div>
-              <button onClick={handleClose} disabled={running} className="text-muted-foreground hover:text-foreground transition">
+              <button onClick={handleClose} className="text-muted-foreground hover:text-foreground transition">
                 <X size={18} />
               </button>
             </div>
@@ -486,7 +468,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
 
                 {/* Queue list */}
                 <div className="max-h-60 overflow-y-auto space-y-1.5 rounded-xl border border-border p-3">
-                  {queue.map((item, idx) => (
+                  {(activeTask?.queue ?? queue).map((item, idx) => (
                     <div key={item.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/50 last:border-0">
                       <span className="w-6 text-muted-foreground font-mono text-center shrink-0">{idx + 1}</span>
                       <span className="font-mono text-slate-700 w-32 truncate">{item.targetNumber}</span>

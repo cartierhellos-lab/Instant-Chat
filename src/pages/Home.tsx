@@ -99,7 +99,7 @@ const LANGS = [
 
 function ChatPanel({ conv }: { conv: Conversation }) {
   const { settings } = useSettingsStore();
-  const { sendOutboundMessage } = useChatStore();
+  const { sendOutboundMessage, pollMessages } = useChatStore();
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -140,6 +140,10 @@ function ChatPanel({ conv }: { conv: Conversation }) {
         ]);
       }
       sendOutboundMessage(conv.id, text);
+      // 发送后 2s 立即拉取一次最新消息（减少延迟感）
+      if (settings.apiKey) {
+        setTimeout(() => pollMessages(settings.apiKey, settings.apiRegion), 2000);
+      }
     } catch {
       sendOutboundMessage(conv.id, text);
     } finally {
