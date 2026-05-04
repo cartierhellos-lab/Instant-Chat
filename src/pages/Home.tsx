@@ -1,24 +1,23 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, Plus, Send, RefreshCw, MessageSquare, Languages, X } from 'lucide-react';
+import { Search, Plus, Send, RefreshCw, MessageSquare, Languages, X, Inbox, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore, useSettingsStore } from '@/hooks/useStore';
 import { cn, formatTime, getInitials } from '@/lib/index';
 import { writeSmsByPhone } from '@/api/duoplus';
+import { translateText } from '@/api/translate';
 import BroadcastDialog from '@/components/BroadcastDialog';
-import type { Conversation } from '@/lib/index';
+import type { Conversation, SmsMessage } from '@/lib/index';
 
-// ─── Translation helper (MyMemory free API, CORS-friendly) ───────────────────
-async function translateText(text: string, targetLang: string): Promise<string> {
-  if (!text.trim()) return '';
-  try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLang}`;
-    const res = await fetch(url);
-    if (!res.ok) return '';
-    const json = await res.json() as { responseData?: { translatedText?: string } };
-    return json.responseData?.translatedText ?? '';
-  } catch {
-    return '';
-  }
+// ─── 消息时间格式化 ───────────────────────────────────────────────────────────
+function formatMsgTime(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+  const hm = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  if (date >= todayStart) return hm;
+  if (date >= yesterdayStart) return `昨天 ${hm}`;
+  return `${date.getMonth() + 1}/${date.getDate()} ${hm}`;
 }
 
 // ─── Conversation List Item ───────────────────────────────────────────────────
@@ -47,7 +46,7 @@ function ConvItem({ conv, isActive, onClick }: { conv: Conversation; isActive: b
             {conv.cloudNumber.name || conv.cloudNumber.number}
           </span>
           <span className="text-[10px] text-muted-foreground ml-2 shrink-0">
-            {conv.lastUpdated ? formatTime(conv.lastUpdated) : ''}
+            {conv.lastUpdated ? formatMsgTime(conv.lastUpdated) : ''}
           </span>
         </div>
         <div className="flex items-center justify-between">
@@ -66,7 +65,14 @@ function ConvItem({ conv, isActive, onClick }: { conv: Conversation; isActive: b
 }
 
 // ─── Message Bubble ───────────────────────────────────────────────────────────
-function MessageBubble({ msg }: { msg: { direction: string; message: string; imageUrl?: string; receivedAt: string; status?: string } }) {
+function StatusIcon({ status }: { status?: string }) {
+  if (status === 'pending') return <RefreshCw className="w-2.5 h-2.5 animate-spin text-primary-foreground/60" />;
+  if (status === 'sent') return <span className="text-green-300 text-[11px] leading-none">✓✓</span>;
+  if (status === 'failed') return <span className="text-red-300 text-[11px] leading-none">✗</span>;
+  return null;
+}
+
+function MessageBubble({ msg, cloudNumberLabel }: { msg: SmsMessage; cloudNumberLabel?: string }) {
   const isOut = msg.direction === 'outbound';
   return (
     <div className={cn('flex mb-2', isOut ? 'justify-end' : 'justify-start')}>
@@ -74,14 +80,20 @@ function MessageBubble({ msg }: { msg: { direction: string; message: string; ima
         'max-w-[72%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm',
         isOut ? 'bg-primary text-primary-foreground rounded-tr-sm' : 'bg-white text-foreground rounded-tl-sm border border-border'
       )}>
+        {/* 收到的消息：显示来源号码标签 */}
+        {!isOut && cloudNumberLabel && (
+          <div className="text-[9px] font-mono text-primary/70 mb-1 flex items-center gap-1">
+            <ArrowDownLeft className="w-2.5 h-2.5" />
+            {cloudNumberLabel}
+          </div>
+        )}
         {msg.imageUrl && (
           <img src={msg.imageUrl} alt="img" className="max-w-full rounded-lg mb-2 max-h-48 object-contain" />
         )}
         <p className="break-words">{msg.message}</p>
         <div className={cn('flex items-center gap-1 mt-1 text-[10px]', isOut ? 'justify-end text-primary-foreground/70' : 'text-muted-foreground')}>
-          <span className="font-mono">{new Date(msg.receivedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
-          {isOut && msg.status === 'sent' && <span>✓✓</span>}
-          {isOut && msg.status === 'failed' && <span className="text-red-300">✗</span>}
+          <span className="font-mono">{formatMsgTime(msg.receivedAt)}</span>
+          {isOut && <StatusIcon status={msg.status} />}
         </div>
       </div>
     </div>
@@ -104,29 +116,36 @@ function ChatPanel({ conv }: { conv: Conversation }) {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [conv.messages.length]);
+
   // Translation state
   const [translateOn, setTranslateOn] = useState(false);
   const [targetLang, setTargetLang] = useState('en');
   const [translated, setTranslated] = useState('');
   const [translating, setTranslating] = useState(false);
+  const [translateEngine, setTranslateEngine] = useState<string>('');
   const translateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [conv.messages.length]);
 
   // Debounced translation
   useEffect(() => {
-    if (!translateOn || !input.trim()) { setTranslated(''); return; }
+    if (!translateOn || !input.trim()) { setTranslated(''); setTranslateEngine(''); return; }
     if (translateTimer.current) clearTimeout(translateTimer.current);
     setTranslating(true);
     translateTimer.current = setTimeout(async () => {
-      const result = await translateText(input, targetLang);
+      const { result, engine, error } = await translateText(input, {
+        engine: settings.translateEngine ?? 'mymemory',
+        ollamaUrl: settings.ollamaUrl,
+        ollamaModel: settings.ollamaModel,
+        targetLang,
+      });
       setTranslated(result);
+      setTranslateEngine(error ? `${engine}(降级)` : engine);
       setTranslating(false);
     }, 600);
     return () => { if (translateTimer.current) clearTimeout(translateTimer.current); };
-  }, [input, translateOn, targetLang]);
+  }, [input, translateOn, targetLang, settings.translateEngine, settings.ollamaUrl, settings.ollamaModel]);
 
   const handleSend = async (useTranslated = false) => {
     const text = (useTranslated ? translated : input).trim();
@@ -180,7 +199,10 @@ function ChatPanel({ conv }: { conv: Conversation }) {
           ) : (
             conv.messages.map((msg) => (
               <motion.div key={msg.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }}>
-                <MessageBubble msg={msg} />
+                <MessageBubble
+                  msg={msg}
+                  cloudNumberLabel={msg.direction === 'inbound' ? (conv.cloudNumber.name || conv.cloudNumber.number) : undefined}
+                />
               </motion.div>
             ))
           )}
@@ -243,11 +265,24 @@ function ChatPanel({ conv }: { conv: Conversation }) {
                   </button>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground italic">翻译中…</p>
+                <p className="text-xs text-muted-foreground italic">翻译中…{settings.translateEngine === 'ollama' ? ' (本地模型)' : ''}</p>
               )}
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* 引擎标识 */}
+        {translateOn && translateEngine && (
+          <div className="px-4 pb-0.5">
+            <span className={cn(
+              'text-[9px] font-mono px-1.5 py-0.5 rounded',
+              translateEngine.includes('ollama') ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-500'
+            )}>
+              {translateEngine.includes('ollama') ? '⚡ 本地 Ollama' : '🌐 MyMemory'}
+              {translateEngine.includes('降级') && ' (降级)'}
+            </span>
+          </div>
+        )}
 
         <div className="flex items-end gap-2">
           <textarea
@@ -292,16 +327,38 @@ function EmptyChat() {
   );
 }
 
+// ─── 会话筛选 Tab ─────────────────────────────────────────────────────────────
+type ConvFilter = 'all' | 'unread' | 'inbound' | 'outbound';
+
+const CONV_FILTERS: { value: ConvFilter; label: string; icon: React.ReactNode }[] = [
+  { value: 'all',      label: '全部',  icon: <MessageSquare className="w-3 h-3" /> },
+  { value: 'unread',   label: '未读',  icon: <Inbox className="w-3 h-3" /> },
+  { value: 'inbound',  label: '收到',  icon: <ArrowDownLeft className="w-3 h-3" /> },
+  { value: 'outbound', label: '发出',  icon: <ArrowUpRight className="w-3 h-3" /> },
+];
+
+function applyConvFilter(convs: Conversation[], filter: ConvFilter): Conversation[] {
+  switch (filter) {
+    case 'unread':   return convs.filter((c) => c.unreadCount > 0);
+    case 'inbound':  return convs.filter((c) => c.lastMessage?.direction === 'inbound');
+    case 'outbound': return convs.filter((c) => c.lastMessage?.direction === 'outbound');
+    default:         return convs;
+  }
+}
+
 // ─── Home Page ────────────────────────────────────────────────────────────────
 export default function Home() {
   const [search, setSearch] = useState('');
+  const [convFilter, setConvFilter] = useState<ConvFilter>('all');
   const [showBroadcast, setShowBroadcast] = useState(false);
   const { conversations, activeConversationId, setActiveConversation } = useChatStore();
 
-  const filtered = conversations.filter((c) => {
+  const searched = conversations.filter((c) => {
     const q = search.toLowerCase();
     return c.cloudNumber.number.toLowerCase().includes(q) || (c.cloudNumber.name?.toLowerCase().includes(q) ?? false);
   });
+
+  const filtered = applyConvFilter(searched, convFilter);
 
   const sorted = [...filtered].sort((a, b) => {
     if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
@@ -333,6 +390,36 @@ export default function Home() {
               placeholder="搜索号码..."
               className="w-full pl-8 pr-3 py-2 rounded-lg bg-slate-50 text-sm border border-border focus:border-ring focus:ring-1 focus:ring-ring/30 outline-none transition"
             />
+          </div>
+          {/* 会话分类 Tab */}
+          <div className="flex gap-1">
+            {CONV_FILTERS.map(({ value, label, icon }) => {
+              const count = value === 'all' ? conversations.length
+                : applyConvFilter(conversations, value).length;
+              return (
+                <button
+                  key={value}
+                  onClick={() => setConvFilter(value)}
+                  className={cn(
+                    'flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all flex-1 justify-center',
+                    convFilter === value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-slate-50 text-muted-foreground hover:bg-slate-100 border border-border'
+                  )}
+                >
+                  {icon}
+                  {label}
+                  {count > 0 && (
+                    <span className={cn(
+                      'rounded-full px-1 text-[9px] font-bold',
+                      convFilter === value ? 'bg-white/20 text-white' : 'bg-muted'
+                    )}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 

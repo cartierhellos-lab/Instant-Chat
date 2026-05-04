@@ -43,6 +43,12 @@ export interface AppSettings {
   adbCommandTemplate: string;
   /** 用于区分管理员/子账号的访问密钥，由用户启动时输入 */
   accessKey?: string;
+  /** 翻译引擎：mymemory = 免费在线 | ollama = 本地模型 */
+  translateEngine?: 'mymemory' | 'ollama';
+  /** Ollama 服务地址，默认 http://localhost:11434 */
+  ollamaUrl?: string;
+  /** Ollama 翻译模型名，默认 qwen2:7b */
+  ollamaModel?: string;
 }
 
 export interface CloudNumber {
@@ -188,7 +194,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   apiRegion: 'cn',
   pollInterval: 5,
   adbCommandTemplate: DEFAULT_ADB_TEMPLATE,
-  accessKey: undefined,  // undefined = 未登录；'' = 管理员已登录；'xxx' = 子账号已登录
+  accessKey: undefined,
+  translateEngine: 'mymemory',
+  ollamaUrl: 'http://localhost:11434',
+  ollamaModel: 'qwen2:7b',
 };
 
 // ============================================================

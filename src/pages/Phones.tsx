@@ -1,13 +1,33 @@
 import { useState } from 'react';
-import { Smartphone, Zap, RefreshCw, Plus, Check, AlertCircle, ChevronRight, ArrowRightLeft } from 'lucide-react';
+import { Smartphone, Zap, RefreshCw, Plus, Check, AlertCircle, ChevronRight, ArrowRightLeft, Copy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAccountStore, useChatStore, useSettingsStore } from '@/hooks/useStore';
 import { cn, MAX_SLOTS, statusColor, statusLabel } from '@/lib/index';
 import type { PhoneBinding, TextNowAccount } from '@/lib/index';
 
-// ============================================================
-// Slot Grid – 10 slots per phone
-// ============================================================
+// ─── IP 复制按钮 ──────────────────────────────────────────────────────────────
+function IpCopyButton({ ip }: { ip: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(ip).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center justify-center w-5 h-5 rounded hover:bg-primary/10 transition-colors shrink-0"
+      title="复制 IP"
+    >
+      {copied
+        ? <Check className="w-3 h-3 text-green-400" />
+        : <Copy className="w-3 h-3 text-primary/60 hover:text-primary" />}
+    </button>
+  );
+}
+
+
 function SlotGrid({
   binding,
   accounts,
@@ -168,8 +188,16 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
           <Smartphone className={cn('w-4.5 h-4.5', phone?.status === 1 ? 'text-green-400' : 'text-muted-foreground')} size={18} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">{phone?.name || phoneId}</p>
-          <p className="text-[10px] text-muted-foreground font-mono">{phone?.os || ''} · {phone?.ip || ''}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{phone?.name || phoneId}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="font-mono text-base font-bold text-primary leading-tight">
+              {phone?.ip || '—'}
+            </span>
+            {phone?.ip && (
+              <IpCopyButton ip={phone.ip} />
+            )}
+          </div>
+          {phone?.os && <p className="text-[10px] text-muted-foreground mt-0.5">{phone.os}</p>}
         </div>
         <div className="flex items-center gap-3 shrink-0 text-[10px]">
           <span className="text-muted-foreground"><span className="font-bold text-foreground">{assignedCount}</span>/{MAX_SLOTS} 已分配</span>

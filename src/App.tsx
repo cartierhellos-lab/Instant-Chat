@@ -7,7 +7,6 @@ import Accounts from '@/pages/Accounts';
 import Phones from '@/pages/Phones';
 import Tasks from '@/pages/Tasks';
 import SettingsPage from '@/pages/SettingsPage';
-import AdminPage from '@/pages/Admin';
 import LoginPage from '@/pages/Login';
 
 /** 已验证身份才能访问，否则跳转登录页 */
@@ -40,7 +39,6 @@ export default function App() {
           <Route path={ROUTE_PATHS.ACCOUNTS} element={<Accounts />} />
           <Route path={ROUTE_PATHS.PHONES} element={<Phones />} />
           <Route path={ROUTE_PATHS.TASKS} element={<Tasks />} />
-          <Route path={ROUTE_PATHS.ADMIN} element={<AdminPage />} />
           <Route path={ROUTE_PATHS.SETTINGS} element={<SettingsPage />} />
         </Route>
 

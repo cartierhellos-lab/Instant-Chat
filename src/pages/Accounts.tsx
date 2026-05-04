@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
-import { Upload, Users, Trash2, RefreshCw, Search, Download, CheckSquare, Square, Zap, AlertCircle, Check } from 'lucide-react';
+import { Upload, Users, Trash2, RefreshCw, Search, Download, CheckSquare, Square, Zap, AlertCircle, Check, Terminal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccountStore, useChatStore, useSettingsStore } from '@/hooks/useStore';
 import { parseTxtAccounts } from '@/api/duoplus';
-import { cn, statusColor, statusLabel, formatTime } from '@/lib/index';
+import { cn, statusColor, statusLabel, formatTime, DEFAULT_ADB_TEMPLATE } from '@/lib/index';
 import type { AccountStatus, TextNowAccount } from '@/lib/index';
 
 const STATUS_FILTERS: { label: string; value: AccountStatus | 'all' }[] = [
@@ -110,6 +110,54 @@ function ImportPanel({ onImported }: { onImported: (added: number, dup: number) 
   );
 }
 
+// ─── ADB 命令模板卡片 ─────────────────────────────────────────────────────────
+function AdbTemplatePanel() {
+  const { settings, updateSettings } = useSettingsStore();
+  const [adbTemplate, setAdbTemplate] = useState(settings.adbCommandTemplate || DEFAULT_ADB_TEMPLATE);
+
+  const handleSave = () => {
+    updateSettings({ adbCommandTemplate: adbTemplate });
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Terminal className="w-3.5 h-3.5 text-primary" />
+        <h3 className="text-xs font-semibold text-foreground">ADB 命令模板</h3>
+      </div>
+      <p className="text-[10px] text-muted-foreground leading-relaxed">
+        将 TextNow 账号注入设备时使用的 ADB 命令。支持变量：
+        <code className="text-primary mx-0.5">{'{phone}'}</code>
+        <code className="text-primary mx-0.5">{'{username}'}</code>
+        <code className="text-primary mx-0.5">{'{password}'}</code>
+        <code className="text-primary mx-0.5">{'{email}'}</code>
+        <code className="text-primary mx-0.5">{'{emailPassword}'}</code>
+      </p>
+      <textarea
+        value={adbTemplate}
+        onChange={(e) => setAdbTemplate(e.target.value)}
+        rows={3}
+        className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-[10px] font-mono text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring/30 outline-none transition-all resize-none"
+      />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleSave}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-medium hover:bg-primary/90 transition-colors"
+        >
+          <Check className="w-3 h-3" />
+          保存模板
+        </button>
+        <button
+          onClick={() => setAdbTemplate(DEFAULT_ADB_TEMPLATE)}
+          className="text-[10px] text-primary hover:underline"
+        >
+          恢复默认
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Accounts() {
   const { accounts, deleteSelected, markBanned, updateAccount } = useAccountStore();
   const { cloudPhones } = useChatStore();
@@ -173,9 +221,9 @@ export default function Accounts() {
           <Users className="w-4.5 h-4.5 text-primary" />
         </div>
         <div>
-          <h1 className="text-base font-semibold text-foreground">TextNow 账号库</h1>
+          <h1 className="text-base font-semibold text-foreground">资源管理</h1>
           <p className="text-xs text-muted-foreground">
-            共 {accounts.length} 个 · 可用 {stats.available} · 已分配 {stats.assigned} · 封禁 {stats.banned}
+            TextNow 账号 · 共 {accounts.length} 个 · 可用 {stats.available} · 已分配 {stats.assigned} · 封禁 {stats.banned}
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -223,6 +271,9 @@ export default function Accounts() {
             <p>每台最多 10 个 TextNow 账号</p>
             <p className="mt-0.5">最大容量: {cloudPhones.length * 10} 个账号</p>
           </div>
+
+          {/* ADB 命令模板 */}
+          <AdbTemplatePanel />
         </div>
 
         {/* Right: account list */}
