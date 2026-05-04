@@ -8,6 +8,7 @@ export const ROUTE_PATHS = {
   TASKS: '/tasks',
   SETTINGS: '/settings',
   ADMIN: '/admin',
+  LOGIN: '/login',
 };
 
 // ============================================================
