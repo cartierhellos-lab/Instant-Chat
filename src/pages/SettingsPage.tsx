@@ -343,394 +343,197 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-card/30 shrink-0">
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/10 border border-primary/20">
-          <Settings className="w-4.5 h-4.5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-base font-semibold text-foreground">系统设置</h1>
-          <p className="text-xs text-muted-foreground">配置 CartierMiller API 连接参数</p>
+      {/* 工具栏 */}
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-[#d0d0d0] bg-[#f0f0f0] shrink-0">
+        <Settings className="w-4 h-4 text-muted-foreground" />
+        <span className="text-[12px] font-semibold text-foreground">设置</span>
+        <div className="flex items-center gap-0.5 ml-3">
+          {(['general', ...(isAdmin ? ['admin'] : [])] as ('general' | 'admin')[]).map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={cn('flex items-center gap-1 h-6 px-2.5 rounded text-[10px] font-medium transition-colors',
+                activeTab === tab ? 'bg-white border border-[#c8c8c8] text-foreground shadow-btn' : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
+              )}>
+              {tab === 'admin' && <ShieldCheck size={10} />}
+              {tab === 'general' ? '常规设置' : '管理员'}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 px-6 pt-3 pb-0 border-b border-border bg-card/30 shrink-0">
-        <button
-          onClick={() => setActiveTab('general')}
-          className={cn(
-            'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2',
-            activeTab === 'general'
-              ? 'border-primary text-primary bg-primary/5'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          )}
-        >
-          常规设置
-        </button>
-        {isAdmin && (
-          <button
-            onClick={() => setActiveTab('admin')}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2',
-              activeTab === 'admin'
-                ? 'border-primary text-primary bg-primary/5'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <ShieldCheck size={14} />
-            管理员
-          </button>
-        )}
-      </div>
-
-      {/* Tab content */}
       {activeTab === 'general' ? (
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 max-w-2xl">
-          {/* Connection status */}
-          <div className={cn(
-            'flex items-center gap-3 px-4 py-3 rounded-xl border',
-            lastError ? 'border-destructive/30 bg-destructive/5' : cloudNumbers.length > 0 ? 'border-green-400/30 bg-green-400/5' : 'border-border bg-muted/30'
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 max-w-2xl">
+          {/* 连接状态 */}
+          <div className={cn('flex items-center gap-2.5 px-3 py-2 rounded border text-[11px]',
+            lastError ? 'border-red-300 bg-red-50 text-red-600' : cloudNumbers.length > 0 ? 'border-green-300 bg-green-50 text-green-700' : 'border-[#ddd] bg-[#f8f8f8] text-muted-foreground'
           )}>
-            {lastError ? (
-              <WifiOff className="w-4.5 h-4.5 text-destructive shrink-0" />
-            ) : cloudNumbers.length > 0 ? (
-              <Wifi className="w-4.5 h-4.5 text-green-400 shrink-0" />
-            ) : (
-              <AlertCircle className="w-4.5 h-4.5 text-muted-foreground shrink-0" />
+            {lastError ? <WifiOff className="w-3.5 h-3.5 shrink-0" /> : cloudNumbers.length > 0 ? <Wifi className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
+            <span className="font-medium">{lastError ? '连接失败' : cloudNumbers.length > 0 ? `已连接 · ${cloudNumbers.length} 个号码` : '未连接'}</span>
+            {lastError && <span className="ml-1 font-mono text-[10px] truncate">{lastError}</span>}
+            {!lastError && settings.apiKey && cloudNumbers.length > 0 && (
+              <span className="ml-1 font-mono text-[10px] opacity-70">{maskApiKey(settings.apiKey)} · {settings.apiRegion === 'cn' ? '国内' : '国际'}</span>
             )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">
-                {lastError ? '连接失败' : cloudNumbers.length > 0 ? `已连接 · ${cloudNumbers.length} 个云号码` : '未连接'}
-              </p>
-              {lastError && <p className="text-xs text-destructive font-mono truncate mt-0.5">{lastError}</p>}
-              {!lastError && settings.apiKey && cloudNumbers.length > 0 && (
-                <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                  API Key: {maskApiKey(settings.apiKey)} · {settings.apiRegion === 'cn' ? '中国大陆节点' : '国际节点'}
-                </p>
-              )}
-            </div>
           </div>
 
           {/* API Key */}
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Key className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-semibold text-foreground">API 密钥</h2>
+          <section className="border border-[#d8d8d8] rounded bg-white p-4 space-y-3">
+            <div className="flex items-center gap-1.5 pb-2 border-b border-[#ebebeb]">
+              <Key className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-[11px] font-semibold">API 密钥</span>
             </div>
-
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                CartierMiller API Key
-              </label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="请输入您的 API Key（在控制台「自动化」→「API」获取）"
-                className="w-full px-3 py-2.5 rounded-lg bg-muted border border-border text-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring/30 outline-none transition-all"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                在 CartierMiller 控制台获取 API Key
-              </p>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium text-muted-foreground">CartierMiller API Key</label>
+              <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="粘贴 API Key…"
+                className="w-full h-7 px-2.5 rounded border border-[#c8c8c8] bg-white text-[11px] font-mono text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition" />
             </div>
-
-            {/* Test connection */}
-            <button
-              onClick={handleTest}
-              disabled={!apiKey || testing}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                apiKey && !testing
-                  ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                  : 'bg-muted text-muted-foreground cursor-not-allowed'
+            <div className="flex items-center gap-2">
+              <button onClick={handleTest} disabled={!apiKey || testing}
+                className="flex items-center gap-1 h-6 px-3 rounded border border-[#c8c8c8] bg-[#f5f5f5] text-[10px] text-foreground/70 hover:border-primary hover:text-primary disabled:opacity-40 transition-colors shadow-btn">
+                {testing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wifi className="w-3 h-3" />}测试连接
+              </button>
+              {testResult !== 'idle' && (
+                <span className={cn('flex items-center gap-1 text-[10px]', testResult === 'ok' ? 'text-green-600' : 'text-red-500')}>
+                  {testResult === 'ok' ? <Check className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}{testMsg}
+                </span>
               )}
-            >
-              {testing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
-              测试连接
-            </button>
-
-            {testResult !== 'idle' && (
-              <div className={cn(
-                'flex items-center gap-2 px-3 py-2 rounded-lg text-xs',
-                testResult === 'ok' ? 'bg-green-400/10 text-green-400 border border-green-400/20' : 'bg-destructive/10 text-destructive border border-destructive/20'
-              )}>
-                {testResult === 'ok' ? <Check className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
-                <span>{testMsg}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Region & Polling */}
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Globe className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-semibold text-foreground">接口配置</h2>
             </div>
+          </section>
 
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                API 节点区域
-              </label>
-              <div className="flex gap-2">
-                {(['cn', 'global'] as const).map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setRegion(r)}
-                    className={cn(
-                      'flex-1 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all duration-200',
-                      region === r
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-muted text-muted-foreground hover:bg-muted/80'
-                    )}
-                  >
+          {/* 接口配置 */}
+          <section className="border border-[#d8d8d8] rounded bg-white p-4 space-y-3">
+            <div className="flex items-center gap-1.5 pb-2 border-b border-[#ebebeb]">
+              <Globe className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-[11px] font-semibold">接口配置</span>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium text-muted-foreground">API 节点区域</label>
+              <div className="flex gap-1.5">
+                {(['cn', 'global'] as const).map(r => (
+                  <button key={r} onClick={() => setRegion(r)}
+                    className={cn('flex-1 h-8 px-3 rounded border text-[10px] font-medium transition-colors',
+                      region === r ? 'border-primary bg-primary/5 text-primary' : 'border-[#c8c8c8] bg-[#f5f5f5] text-foreground/70 hover:border-primary hover:text-primary'
+                    )}>
                     {r === 'cn' ? '🇨🇳 中国大陆' : '🌍 国际节点'}
-                    <div className="text-[10px] font-mono opacity-70 mt-0.5">
-                      {r === 'cn' ? 'api.carriermiller.cn' : 'api.carriermiller.net'}
-                    </div>
+                    <div className="text-[9px] font-mono opacity-60 mt-0.5">{r === 'cn' ? 'api.carriermiller.cn' : 'api.carriermiller.net'}</div>
                   </button>
                 ))}
               </div>
             </div>
-
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                轮询间隔（秒）
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="range"
-                  min={3}
-                  max={60}
-                  step={1}
-                  value={pollInterval}
-                  onChange={(e) => setPollInterval(Number(e.target.value))}
-                  className="flex-1 accent-primary"
-                />
-                <span className="text-sm font-mono text-foreground w-12 text-right">
-                  {pollInterval}s
-                </span>
-              </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                <span>3s（高频）</span>
-                <span>建议 5-10s</span>
-                <span>60s（低频）</span>
-              </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium text-muted-foreground">轮询间隔：<span className="font-mono text-primary">{pollInterval}s</span></label>
+              <input type="range" min={3} max={60} step={1} value={pollInterval} onChange={e => setPollInterval(Number(e.target.value))}
+                className="w-full accent-primary" style={{height:'4px'}} />
+              <div className="flex justify-between text-[9px] text-muted-foreground"><span>3s 高频</span><span>建议 5-10s</span><span>60s 低频</span></div>
             </div>
-          </div>
+          </section>
 
-          {/* Translation Engine */}
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Languages className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-semibold text-foreground">翻译引擎</h2>
+          {/* 翻译引擎 */}
+          <section className="border border-[#d8d8d8] rounded bg-white p-4 space-y-3">
+            <div className="flex items-center gap-1.5 pb-2 border-b border-[#ebebeb]">
+              <Languages className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-[11px] font-semibold">翻译引擎</span>
             </div>
-            {/* 引擎选择 */}
-            <div className="flex gap-2">
-              {(['mymemory', 'ollama'] as const).map((e) => (
+            <div className="flex gap-1.5">
+              {(['mymemory', 'ollama'] as const).map(e => (
                 <button key={e} onClick={() => setTranslateEngine(e)}
-                  className={cn('flex-1 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all',
-                    translateEngine === e ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-muted text-muted-foreground hover:bg-muted/80'
+                  className={cn('flex-1 h-7 px-3 rounded border text-[10px] font-medium transition-colors',
+                    translateEngine === e ? 'border-primary bg-primary/5 text-primary' : 'border-[#c8c8c8] bg-[#f5f5f5] text-foreground/70 hover:border-primary hover:text-primary'
                   )}>
-                  {e === 'mymemory' ? '🌐 MyMemory（在线免费）' : '⚡ Ollama（本地模型）'}
+                  {e === 'mymemory' ? '🌐 MyMemory（在线）' : '⚡ Ollama（本地）'}
                 </button>
               ))}
             </div>
-
             {translateEngine === 'ollama' && (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Ollama 服务地址</label>
-                  <input value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)}
-                    placeholder="http://localhost:11434"
-                    className="w-full px-3 py-2.5 rounded-lg bg-muted border border-border text-sm font-mono text-foreground focus:border-ring focus:ring-1 focus:ring-ring/30 outline-none" />
-                  <p className="text-[10px] text-muted-foreground mt-1">本地运行 Ollama 后的默认地址，部署在服务器则填写服务器 IP</p>
+                  <label className="block text-[10px] font-medium text-muted-foreground mb-1">Ollama 地址</label>
+                  <input value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} placeholder="http://localhost:11434"
+                    className="w-full h-7 px-2.5 rounded border border-[#c8c8c8] bg-white text-[11px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">翻译模型</label>
-                  <div className="flex gap-2">
-                    <input value={ollamaModel} onChange={e => setOllamaModel(e.target.value)}
-                      placeholder="qwen2:7b"
-                      className="flex-1 px-3 py-2.5 rounded-lg bg-muted border border-border text-sm font-mono text-foreground focus:border-ring focus:ring-1 focus:ring-ring/30 outline-none" />
+                  <label className="block text-[10px] font-medium text-muted-foreground mb-1">翻译模型</label>
+                  <div className="flex gap-1.5">
+                    <input value={ollamaModel} onChange={e => setOllamaModel(e.target.value)} placeholder="qwen2:7b"
+                      className="flex-1 h-7 px-2.5 rounded border border-[#c8c8c8] bg-white text-[11px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition" />
                     {ollamaModels.length > 0 && (
                       <select value={ollamaModel} onChange={e => setOllamaModel(e.target.value)}
-                        className="px-2 py-2 rounded-lg bg-muted border border-border text-xs text-foreground outline-none">
+                        className="h-7 px-1.5 rounded border border-[#c8c8c8] bg-white text-[10px] outline-none">
                         {ollamaModels.map(m => <option key={m} value={m}>{m}</option>)}
                       </select>
                     )}
                   </div>
                 </div>
-                <button onClick={async () => {
-                  setOllamaTestResult('idle'); setOllamaTestMsg('');
-                  const { testOllamaConnection } = await import('@/api/translate');
-                  const r = await testOllamaConnection(ollamaUrl);
-                  setOllamaTestResult(r.ok ? 'ok' : 'fail');
-                  setOllamaTestMsg(r.ok ? `连接成功，${r.models.length} 个模型可用` : r.error ?? '连接失败');
-                  if (r.ok) setOllamaModels(r.models);
-                }} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-all">
-                  <Wifi className="w-3.5 h-3.5" /> 测试 Ollama 连接
-                </button>
-                {ollamaTestResult !== 'idle' && (
-                  <div className={cn('flex items-center gap-2 px-3 py-2 rounded-lg text-xs',
-                    ollamaTestResult === 'ok' ? 'bg-green-400/10 text-green-600 border border-green-400/20' : 'bg-destructive/10 text-destructive border border-destructive/20'
-                  )}>
-                    {ollamaTestResult === 'ok' ? <Check className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
-                    {ollamaTestMsg}
-                  </div>
-                )}
-                <p className="text-[10px] text-muted-foreground">Ollama 不可用时自动降级到 MyMemory</p>
+                <div className="flex items-center gap-2">
+                  <button onClick={async () => {
+                    setOllamaTestResult('idle'); setOllamaTestMsg('');
+                    const { testOllamaConnection } = await import('@/api/translate');
+                    const r = await testOllamaConnection(ollamaUrl);
+                    setOllamaTestResult(r.ok ? 'ok' : 'fail');
+                    setOllamaTestMsg(r.ok ? `连接成功，${r.models.length} 个模型` : r.error ?? '连接失败');
+                    if (r.ok) setOllamaModels(r.models);
+                  }} className="flex items-center gap-1 h-6 px-2.5 rounded border border-[#c8c8c8] bg-[#f5f5f5] text-[10px] text-foreground/70 hover:border-primary hover:text-primary transition-colors shadow-btn">
+                    <Wifi className="w-3 h-3" />测试 Ollama
+                  </button>
+                  {ollamaTestResult !== 'idle' && (
+                    <span className={cn('flex items-center gap-1 text-[10px]', ollamaTestResult === 'ok' ? 'text-green-600' : 'text-red-500')}>
+                      {ollamaTestResult === 'ok' ? <Check className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}{ollamaTestMsg}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[9px] text-muted-foreground">Ollama 不可用时自动降级到 MyMemory</p>
               </div>
             )}
+            {translateEngine === 'mymemory' && <p className="text-[10px] text-muted-foreground">MyMemory 免费在线翻译，支持 50+ 语言，每天约 5000 次调用限额</p>}
+          </section>
 
-            {translateEngine === 'mymemory' && (
-              <p className="text-xs text-muted-foreground">使用 MyMemory 免费翻译 API，无需配置，支持 50+ 语言，每天有调用限额（约 5000 次）</p>
-            )}
-          </div>
-
-          {/* Supabase Configuration */}
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Database className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-semibold text-foreground">Supabase 数据库</h2>
+          {/* Supabase */}
+          <section className="border border-[#d8d8d8] rounded bg-white p-4 space-y-3">
+            <div className="flex items-center gap-1.5 pb-2 border-b border-[#ebebeb]">
+              <Database className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-[11px] font-semibold">Supabase 数据库</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              配置 Supabase 项目地址，用于持久化存储账号、任务等数据。
-            </p>
-
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                Project URL
-              </label>
-              <input
-                type="text"
-                value={sbUrl}
-                onChange={(e) => setSbUrl(e.target.value)}
-                placeholder="https://xxxxxxxxxxxx.supabase.co"
-                className="w-full px-3 py-2.5 rounded-lg bg-muted border border-border text-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring/30 outline-none transition-all"
-              />
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium text-muted-foreground">Project URL</label>
+              <input type="text" value={sbUrl} onChange={e => setSbUrl(e.target.value)} placeholder="https://xxxx.supabase.co"
+                className="w-full h-7 px-2.5 rounded border border-[#c8c8c8] bg-white text-[11px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition" />
             </div>
-
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                Anon / Public Key
-              </label>
-              <input
-                type="password"
-                value={sbKey}
-                onChange={(e) => setSbKey(e.target.value)}
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                className="w-full px-3 py-2.5 rounded-lg bg-muted border border-border text-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring/30 outline-none transition-all"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                在 Supabase 控制台 → Project Settings → API 中获取
-              </p>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium text-muted-foreground">Anon / Public Key</label>
+              <input type="password" value={sbKey} onChange={e => setSbKey(e.target.value)} placeholder="eyJhbGciOi…"
+                className="w-full h-7 px-2.5 rounded border border-[#c8c8c8] bg-white text-[11px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition" />
             </div>
-
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleSbTest}
-                disabled={!sbUrl.trim() || !sbKey.trim() || sbTesting}
-                className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                  sbUrl.trim() && sbKey.trim() && !sbTesting
-                    ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                    : 'bg-muted text-muted-foreground cursor-not-allowed'
-                )}
-              >
-                {sbTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
-                测试连接
+              <button onClick={handleSbTest} disabled={!sbUrl.trim() || !sbKey.trim() || sbTesting}
+                className="flex items-center gap-1 h-6 px-2.5 rounded border border-[#c8c8c8] bg-[#f5f5f5] text-[10px] text-foreground/70 hover:border-primary hover:text-primary disabled:opacity-40 transition-colors shadow-btn">
+                {sbTesting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wifi className="w-3 h-3" />}测试
               </button>
-              <button
-                onClick={handleSbSave}
-                disabled={!sbUrl.trim() || !sbKey.trim()}
-                className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                  sbUrl.trim() && sbKey.trim()
-                    ? sbSaved
-                      ? 'bg-green-400/20 text-green-400 border border-green-400/30'
-                      : 'bg-primary text-primary-foreground hover:opacity-90'
-                    : 'bg-muted text-muted-foreground cursor-not-allowed'
-                )}
-              >
-                {sbSaved ? <Check className="w-3.5 h-3.5" /> : <Database className="w-3.5 h-3.5" />}
-                {sbSaved ? '已保存！' : '保存配置'}
+              <button onClick={handleSbSave} disabled={!sbUrl.trim() || !sbKey.trim()}
+                className={cn('flex items-center gap-1 h-6 px-2.5 rounded text-[10px] font-medium transition-colors shadow-btn disabled:opacity-40',
+                  sbSaved ? 'border border-green-300 bg-green-50 text-green-700' : 'bg-primary text-white hover:opacity-90'
+                )}>
+                {sbSaved ? <><Check className="w-3 h-3" />已保存</> : <><Database className="w-3 h-3" />保存配置</>}
               </button>
+              {sbTestResult !== 'idle' && (
+                <span className={cn('flex items-center gap-1 text-[10px]', sbTestResult === 'ok' ? 'text-green-600' : 'text-red-500')}>
+                  {sbTestResult === 'ok' ? <Check className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}{sbTestMsg}
+                </span>
+              )}
             </div>
+          </section>
 
-            {sbTestResult !== 'idle' && (
-              <div className={cn(
-                'flex items-center gap-2 px-3 py-2 rounded-lg text-xs',
-                sbTestResult === 'ok' ? 'bg-green-400/10 text-green-400 border border-green-400/20' : 'bg-destructive/10 text-destructive border border-destructive/20'
+          {/* 保存 + 身份 + 退出 */}
+          <div className="flex items-center gap-3 pb-4">
+            <button onClick={handleSave}
+              className={cn('flex items-center gap-1.5 h-7 px-4 rounded text-[11px] font-semibold transition-colors shadow-btn',
+                saved ? 'border border-green-300 bg-green-50 text-green-700' : 'bg-primary text-white hover:opacity-90'
               )}>
-                {sbTestResult === 'ok' ? <Check className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
-                <span>{sbTestMsg}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Save button */}
-          <button
-            onClick={handleSave}
-            className={cn(
-              'w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-200 shadow-md',
-              saved
-                ? 'bg-green-400/20 text-green-400 border border-green-400/30'
-                : 'bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]'
-            )}
-          >
-            {saved ? <Check className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
-            {saved ? '已保存！' : '保存并应用设置'}
-          </button>
-
-          {/* 当前身份 + 登出 */}
-          <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
-            <div className={cn(
-              'flex items-center justify-center w-8 h-8 rounded-lg shrink-0',
-              currentRole === 'admin' ? 'bg-primary/10' : 'bg-muted'
-            )}>
-              {currentRole === 'admin'
-                ? <ShieldCheck className="w-4 h-4 text-primary" />
-                : <User className="w-4 h-4 text-muted-foreground" />
-              }
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">
-                {currentRole === 'admin' ? '管理员' : '子账号用户'}
-              </p>
-              <p className="text-xs text-muted-foreground font-mono truncate">
-                {currentRole === 'admin'
-                  ? (settings.apiKey ? maskApiKey(settings.apiKey) : '未设置 CartierMiller API Key')
-                  : `密钥: ${settings.accessKey ? maskApiKey(settings.accessKey) : '—'}`
-                }
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                stopPolling();
-                updateSettings({ accessKey: undefined });
-                navigate(ROUTE_PATHS.LOGIN, { replace: true });
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-destructive hover:bg-destructive/10 transition-colors border border-destructive/20"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              退出登录
+              {saved ? <><Check className="w-3.5 h-3.5" />已保存</> : <><Settings className="w-3.5 h-3.5" />保存并应用</>}
             </button>
-          </div>
-
-          {/* API docs hint */}
-          <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2">
-            <h3 className="text-xs font-semibold text-foreground">📖 API 接口说明</h3>
-            <div className="space-y-1 text-[11px] text-muted-foreground font-mono">
-              <div><span className="text-primary">POST</span> /api/v1/cloudNumber/list — 获取号码列表</div>
-              <div><span className="text-primary">POST</span> /api/v1/cloudNumber/smsList — 查询接收短信（轮询）</div>
-              <div><span className="text-primary">POST</span> /api/v1/cloudNumber/imageWriteSms — 写入短信到设备（发送）</div>
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              注：写入短信仅限 Android 15 和 Android 12 (区域A) 的设备可操作
-            </p>
+            <span className="text-[10px] text-muted-foreground ml-auto">
+              {currentRole === 'admin' ? '🔑 管理员' : '👤 子账号'} · {settings.apiKey ? maskApiKey(settings.apiKey) : '未配置'}
+            </span>
+            <button onClick={() => { stopPolling(); updateSettings({ accessKey: undefined }); navigate(ROUTE_PATHS.LOGIN, { replace: true }); }}
+              className="flex items-center gap-1 h-6 px-2 rounded border border-red-300 bg-red-50 text-red-600 text-[10px] hover:bg-red-100 transition-colors">
+              <LogOut className="w-3 h-3" />退出
+            </button>
           </div>
         </div>
       ) : (
-        /* Admin tab */
         <div className="flex flex-1 overflow-hidden min-h-0">
           <AdminPanel />
         </div>

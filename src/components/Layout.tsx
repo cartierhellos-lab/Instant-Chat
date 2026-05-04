@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { MessageSquare, ListTodo, Settings, RefreshCw, Wifi, WifiOff, Phone, Users, Smartphone } from 'lucide-react';
+import { MessageSquare, ListTodo, Settings, RefreshCw, WifiOff, Phone, Users, Smartphone, Wifi } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import { useSettingsStore, useChatStore, useAdminStore } from '@/hooks/useStore';
 import { cn } from '@/lib/index';
@@ -10,17 +10,13 @@ export default function Layout() {
   const { settings } = useSettingsStore();
   const { startPolling, stopPolling, isLoading, lastError, cloudNumbers, loadCloudPhones } = useChatStore();
   const { currentRole, resolveRole, setRole } = useAdminStore();
-  // 标记是否已经初始化过轮询（避免重复启动）
   const pollingKey = useRef<string>('');
 
-  // ── 角色解析 ──────────────────────────────────────────────
   useEffect(() => {
     const role = resolveRole(settings.accessKey ?? '', settings.apiKey);
     setRole(role);
   }, [settings.accessKey, settings.apiKey]);
 
-  // ── 数据初始化 & 轮询 ─────────────────────────────────────
-  // 依赖 apiKey/region/interval 三者中任一变化就重新启动
   useEffect(() => {
     if (!settings.apiKey) {
       stopPolling();
@@ -28,14 +24,10 @@ export default function Layout() {
       return;
     }
     const newKey = `${settings.apiKey}|${settings.apiRegion}|${settings.pollInterval}`;
-    // 防止重复启动（React StrictMode 在开发环境会 mount 两次）
     if (pollingKey.current === newKey) return;
     pollingKey.current = newKey;
-
-    // 立即加载云号码 + 云手机（并行）
     startPolling(settings.apiKey, settings.apiRegion, settings.pollInterval);
     loadCloudPhones(settings.apiKey, settings.apiRegion);
-
     return () => {
       stopPolling();
       pollingKey.current = '';
@@ -46,23 +38,31 @@ export default function Layout() {
 
   const NAV_ITEMS = [
     { path: ROUTE_PATHS.HOME,     icon: MessageSquare, label: '聊天',   show: true },
-    { path: ROUTE_PATHS.ACCOUNTS, icon: Users,         label: '资源', show: isAdmin },
-    { path: ROUTE_PATHS.PHONES,   icon: Smartphone,    label: '设备', show: true },
+    { path: ROUTE_PATHS.ACCOUNTS, icon: Users,         label: '资源',   show: isAdmin },
+    { path: ROUTE_PATHS.PHONES,   icon: Smartphone,    label: '设备',   show: true },
     { path: ROUTE_PATHS.TASKS,    icon: ListTodo,      label: '群发',   show: true },
     { path: ROUTE_PATHS.SETTINGS, icon: Settings,      label: '设置',   show: true },
   ];
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
-      {/* 窄图标侧边栏 */}
-      <aside className="flex flex-col items-center w-16 h-full bg-white border-r border-border shrink-0 py-4 gap-1 shadow-sm">
-        {/* Logo */}
-        <div className="flex items-center justify-center w-10 h-10 mb-3 rounded-xl bg-primary/10">
-          <Phone className="w-5 h-5 text-primary" />
+    <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
+
+      {/* ── Toolbar（macOS 标题栏风格）──────────────────────────────── */}
+      <header className="flex items-center h-10 px-3 gap-1 bg-[#ebebeb] border-b border-[#d0d0d0] shrink-0 select-none">
+
+        {/* App icon + name */}
+        <div className="flex items-center gap-1.5 mr-3">
+          <div className="w-5 h-5 rounded-[5px] bg-primary flex items-center justify-center">
+            <Phone className="w-3 h-3 text-white" />
+          </div>
+          <span className="text-[12px] font-semibold text-foreground/80 tracking-tight">Instant Chat</span>
         </div>
 
-        {/* Nav */}
-        <nav className="flex flex-col gap-1 flex-1 w-full px-2">
+        {/* 分割线 */}
+        <div className="toolbar-divider" />
+
+        {/* Nav tabs — pill 风格 */}
+        <nav className="flex items-center gap-0.5 ml-1">
           {NAV_ITEMS.filter(i => i.show).map(({ path, icon: Icon, label }) => (
             <NavLink
               key={path}
@@ -70,53 +70,63 @@ export default function Layout() {
               end={path === ROUTE_PATHS.HOME}
               className={({ isActive }) =>
                 cn(
-                  'flex flex-col items-center justify-center gap-1 w-full py-2 rounded-lg transition-all duration-200 text-[10px] font-medium',
+                  'flex items-center gap-1.5 px-2.5 h-6 rounded text-[11px] font-medium transition-all duration-100',
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                    ? 'bg-white text-foreground shadow-btn border border-[#c8c8c8]'
+                    : 'text-foreground/60 hover:text-foreground hover:bg-black/5'
                 )
               }
             >
-              <Icon size={17} />
+              <Icon size={12} strokeWidth={2} />
               <span>{label}</span>
             </NavLink>
           ))}
         </nav>
 
-        {/* 底部状态 */}
-        <div className="flex flex-col items-center gap-1 mt-auto px-2">
-          {isAdmin && (
-            <div className="text-[8px] text-primary font-bold bg-primary/10 rounded px-1 py-0.5 mb-1">
-              ADMIN
-            </div>
-          )}
+        {/* 右侧状态区 */}
+        <div className="flex items-center gap-2 ml-auto">
+          {/* 号码计数 */}
+          <span className="text-[10px] text-foreground/40 font-mono">
+            {cloudNumbers.length} 个号码
+          </span>
+
+          <div className="toolbar-divider" />
+
+          {/* 连接状态 */}
           {isLoading && (
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100">
-              <RefreshCw className="w-3.5 h-3.5 text-slate-400 animate-spin" />
-            </div>
+            <RefreshCw className="w-3 h-3 text-foreground/40 animate-spin" />
           )}
           {lastError && !isLoading && (
-            <div
-              className="flex items-center justify-center w-8 h-8 rounded-full bg-red-50 cursor-pointer"
-              title={lastError}
+            <button
               onClick={() => navigate(ROUTE_PATHS.SETTINGS)}
+              className="flex items-center gap-1 text-[10px] text-red-500 hover:text-red-600"
+              title={lastError}
             >
-              <WifiOff className="w-3.5 h-3.5 text-destructive" />
-            </div>
+              <WifiOff className="w-3 h-3" />
+              <span>未连接</span>
+            </button>
           )}
           {settings.apiKey && !lastError && !isLoading && (
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
-              <Wifi className="w-3.5 h-3.5 text-primary" />
-            </div>
+            <span className="flex items-center gap-1 text-[10px] text-green-600">
+              <Wifi className="w-3 h-3" />
+              <span>已连接</span>
+            </span>
           )}
-          <div className="text-[9px] text-slate-400 font-mono text-center leading-tight">
-            {cloudNumbers.length}<br />号码
-          </div>
-        </div>
-      </aside>
 
-      {/* 内容区 */}
-      <div className="flex flex-1 min-w-0 h-full overflow-hidden">
+          {/* Admin badge */}
+          {isAdmin && (
+            <>
+              <div className="toolbar-divider" />
+              <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                ADMIN
+              </span>
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* ── 内容区 ─────────────────────────────────────────────────── */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         <Outlet />
       </div>
     </div>
