@@ -1,0 +1,216 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+==========================================================================
+【AI HANDOVER NOTE】
+1. DESIGN PHILOSOPHY:
+   - 主设计理念：Messaging-First Dark Interface with Operational Clarity
+   - 视觉风格：深色主题 IM 产品风格，融合 WhatsApp Web 的三栏布局与现代 SaaS Dashboard 的数据可视化能力
+   - 设计目标：为云手机批量消息管理提供专业、高效、清晰的操作界面，确保长时间使用的舒适性与任务状态的即时可见性
+   - 核心特征：深色背景降低视觉疲劳，绿色/蓝色高亮提升操作反馈，气泡式消息布局符合用户 IM 使用习惯
+
+2. TYPOGRAPHY:
+   - Sans 字体：Inter + Noto Sans SC 组合，Inter 提供现代几何美感与优秀的屏显可读性，Noto Sans SC 确保中文界面的专业呈现，适合长文本阅读与密集信息展示
+   - Mono 字体：JetBrains Mono 用于 API Key、云手机编号、任务 ID、时间戳等技术数据展示，其清晰的字符区分度（0/O, 1/l/I）降低操作错误率
+   - 字重策略：Regular(400) 用于正文，Medium(500) 用于列表项与按钮，Semibold(600) 用于标题，Bold(700) 用于强调状态
+
+3. COLOR SYSTEM:
+   - 品牌主色：Hue 160（青绿色系），灵感来自 WhatsApp 的标志性绿色，但调整为更冷静的青绿色调（Cyan-Green），既保持 IM 产品的亲和感，又增强科技专业属性
+   - --brand 映射逻辑：--primary 用于主要操作按钮（发送消息、创建任务），--accent 用于未读消息角标与在线状态指示，--ring 用于输入框聚焦状态
+   - 语义色设计：success(Hue 150 绿色) 表示任务完成/消息已送达，warning(Hue 45 琥珀色) 表示任务执行中/等待状态，destructive(Hue 10 红色) 表示发送失败/错误状态
+   - 消息气泡色彩：发送方使用 --primary 系（青绿色气泡），接收方使用 --muted 系（深灰色气泡），确保视觉区分度
+   - Dark mode 优化：背景亮度控制在 0.10-0.15 之间（深空灰），避免纯黑造成的对比度过高，前景文字亮度 0.92 确保长时间阅读舒适性
+
+4. USAGE GUIDE:
+   - 布局类型：Full-width Dashboard with Three-Column Layout（左侧导航 240px + 中间会话列表 360px + 右侧聊天区域 flex-1）
+   - 特效用法：
+     * 侧边栏与会话列表使用 backdrop-blur-sm 实现轻微毛玻璃效果，增强层次感
+     * 消息气泡添加 shadow-sm 与 border-l-2（发送方）/ border-r-2（接收方）实现微妙的物理感
+     * 未读角标使用 --accent 色 + ring-2 ring-accent/20 实现呼吸感
+     * 任务进度条使用 --primary 渐变 + animate-pulse 表示执行中状态
+   - 交互规则：
+     * 聊天输入框聚焦时显示 ring-2 ring-ring，提升操作反馈
+     * 会话列表项 hover 时背景变为 --muted/50，点击后背景变为 --muted
+     * 群发任务创建弹窗使用 --popover 背景 + backdrop-blur-md 实现模态层次
+   - 响应式策略：移动端（<768px）隐藏左侧导航，会话列表与聊天区域切换显示；平板端（768-1024px）左侧导航收起为图标模式
+   - API 集成提示：轮询间隔建议 3-5 秒，使用 --muted-foreground 显示最后更新时间，避免过度请求
+==========================================================================
+*/
+
+:root {
+  /* Typography */
+  --font-sans: Inter, 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Core UI Tokens */
+  --background: oklch(0.98 0.005 240);
+  --foreground: oklch(0.15 0.02 240);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.02 240);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.02 240);
+  --primary: oklch(0.55 0.18 160);
+  --primary-foreground: oklch(0.98 0.005 160);
+  --secondary: oklch(0.92 0.01 240);
+  --secondary-foreground: oklch(0.20 0.02 240);
+  --muted: oklch(0.95 0.01 240);
+  --muted-foreground: oklch(0.48 0.02 240);
+  --accent: oklch(0.50 0.20 160);
+  --accent-foreground: oklch(0.98 0.005 160);
+  --destructive: oklch(0.58 0.22 10);
+  --destructive-foreground: oklch(0.98 0.005 10);
+  --border: oklch(0.88 0.01 240);
+  --input: oklch(0.88 0.01 240);
+  --ring: oklch(0.55 0.18 160);
+  
+  /* Chart Tokens */
+  --chart-1: oklch(0.60 0.18 160);
+  --chart-2: oklch(0.62 0.20 200);
+  --chart-3: oklch(0.58 0.16 280);
+  --chart-4: oklch(0.60 0.18 45);
+  --chart-5: oklch(0.56 0.20 320);
+  
+  /* Sidebar Tokens */
+  --sidebar: oklch(0.98 0.005 240);
+  --sidebar-foreground: oklch(0.20 0.02 240);
+  --sidebar-primary: oklch(0.55 0.18 160);
+  --sidebar-primary-foreground: oklch(0.98 0.005 160);
+  --sidebar-accent: oklch(0.92 0.01 240);
+  --sidebar-accent-foreground: oklch(0.20 0.02 240);
+  --sidebar-border: oklch(0.88 0.01 240);
+  --sidebar-ring: oklch(0.55 0.18 160);
+}
+
+.dark {
+  --background: oklch(0.12 0.015 240);
+  --foreground: oklch(0.92 0.01 240);
+  --card: oklch(0.15 0.018 240);
+  --card-foreground: oklch(0.92 0.01 240);
+  --popover: oklch(0.14 0.018 240);
+  --popover-foreground: oklch(0.92 0.01 240);
+  --primary: oklch(0.62 0.20 160);
+  --primary-foreground: oklch(0.12 0.015 160);
+  --secondary: oklch(0.22 0.025 240);
+  --secondary-foreground: oklch(0.88 0.01 240);
+  --muted: oklch(0.20 0.02 240);
+  --muted-foreground: oklch(0.58 0.015 240);
+  --accent: oklch(0.65 0.22 160);
+  --accent-foreground: oklch(0.12 0.015 160);
+  --destructive: oklch(0.62 0.24 10);
+  --destructive-foreground: oklch(0.95 0.01 10);
+  --border: oklch(0.25 0.02 240);
+  --input: oklch(0.25 0.02 240);
+  --ring: oklch(0.62 0.20 160);
+  
+  /* Chart Tokens */
+  --chart-1: oklch(0.65 0.20 160);
+  --chart-2: oklch(0.68 0.22 200);
+  --chart-3: oklch(0.62 0.18 280);
+  --chart-4: oklch(0.66 0.20 45);
+  --chart-5: oklch(0.60 0.22 320);
+  
+  /* Sidebar Tokens */
+  --sidebar: oklch(0.10 0.015 240);
+  --sidebar-foreground: oklch(0.88 0.01 240);
+  --sidebar-primary: oklch(0.62 0.20 160);
+  --sidebar-primary-foreground: oklch(0.12 0.015 160);
+  --sidebar-accent: oklch(0.22 0.025 240);
+  --sidebar-accent-foreground: oklch(0.88 0.01 240);
+  --sidebar-border: oklch(0.20 0.02 240);
+  --sidebar-ring: oklch(0.62 0.20 160);
+}
+
+@theme inline {
+  /* Shadcn Core Mapping */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Charts Mapping */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Sidebar Mapping */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Typography */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* Radius */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply scroll-smooth antialiased;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans min-h-screen;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  code, pre {
+    @apply font-mono;
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-primary;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40;
+  }
+}
