@@ -47,7 +47,7 @@ export default function Layout() {
   const NAV_ITEMS = [
     { path: ROUTE_PATHS.HOME,     icon: MessageSquare, label: '聊天',   show: true },
     { path: ROUTE_PATHS.ACCOUNTS, icon: Users,         label: '账号库', show: isAdmin },
-    { path: ROUTE_PATHS.PHONES,   icon: Smartphone,    label: '云手机', show: true },
+    { path: ROUTE_PATHS.PHONES,   icon: Smartphone,    label: '设备', show: true },
     { path: ROUTE_PATHS.TASKS,    icon: ListTodo,      label: '群发',   show: true },
     { path: ROUTE_PATHS.ADMIN,    icon: ShieldCheck,   label: '管理',   show: isAdmin },
     { path: ROUTE_PATHS.SETTINGS, icon: Settings,      label: '设置',   show: true },

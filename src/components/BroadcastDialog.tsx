@@ -385,7 +385,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                 {/* Sender selection */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1.5">
-                    {mode === 'cloud_number' ? '发送号码' : '云手机'} <span className="text-destructive">*</span>
+                    {mode === 'cloud_number' ? '发送号码' : '设备'} <span className="text-destructive">*</span>
                     {selectedSenders.length > 0 && <span className="ml-2 text-primary text-xs">({selectedSenders.length} 已选)</span>}
                   </label>
 

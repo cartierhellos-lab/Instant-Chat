@@ -268,7 +268,7 @@ function ChatPanel({ conv }: { conv: Conversation }) {
           </button>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1.5">
-          DuoPlus API 写入 · Enter 发送原文{translateOn ? ' · 点击「发译文」发送翻译后内容' : ''}
+          CartierMiller API 写入 · Enter 发送原文{translateOn ? ' · 点击「发译文」发送翻译后内容' : ''}
         </p>
       </div>
     </div>

@@ -85,7 +85,7 @@ export default function LoginPage() {
 
     // 无匹配
     if (isFirstTime && !looksLikeApiKey) {
-      setError('格式不正确，请输入 DuoPlus API Key（UUID格式）');
+      setError('格式不正确，请输入 CartierMiller API Key（UUID格式）');
     } else {
       setError('密钥无效，请联系管理员获取访问权限');
     }
@@ -137,7 +137,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-white text-xl font-bold tracking-wide">Instant Chat</h1>
-          <p className="text-white/55 text-xs">DuoPlus 云手机智能管理平台</p>
+          <p className="text-white/55 text-xs">CartierMiller 智能管理平台</p>
         </div>
 
         <div className="w-full h-px" style={{ background: 'rgba(255,255,255,0.15)' }} />
@@ -146,7 +146,7 @@ export default function LoginPage() {
         <div className="w-full grid grid-cols-2 gap-2 text-[10px]">
           <div className="flex items-start gap-1.5 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <Shield size={11} className="text-white/70 mt-0.5 shrink-0" />
-            <span className="text-white/60 leading-relaxed">管理员<br/>输入 DuoPlus API Key</span>
+            <span className="text-white/60 leading-relaxed">管理员<br/>输入 CartierMiller API Key</span>
           </div>
           <div className="flex items-start gap-1.5 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <Users size={11} className="text-white/70 mt-0.5 shrink-0" />
@@ -163,7 +163,7 @@ export default function LoginPage() {
               value={key}
               onChange={e => { setKey(e.target.value); setError(''); }}
               onKeyDown={handleKeyDown}
-              placeholder="粘贴 API Key 或子账号密钥…"
+              placeholder="粘贴 CartierMiller API Key 或子账号密钥…"
               autoComplete="off"
               className="w-full pr-10 pl-4 py-3 rounded-xl text-sm text-white placeholder:text-white/35 outline-none transition-all"
               style={{
@@ -211,7 +211,7 @@ export default function LoginPage() {
 
       {/* 底部水印 */}
       <div className="absolute bottom-5 left-0 right-0 flex justify-center">
-        <span className="text-white/20 text-[10px] tracking-widest font-mono">POWERED BY DUOPLUS</span>
+        <span className="text-white/20 text-[10px] tracking-widest font-mono">CARTIER MILLER</span>
       </div>
     </div>
   );

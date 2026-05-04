@@ -69,7 +69,7 @@ export default function AdminPage() {
         </div>
         <div>
           <h1 className="text-base font-semibold text-foreground">子账号管理</h1>
-          <p className="text-xs text-muted-foreground">创建子账号密钥并分配云手机 / TextNow 账号</p>
+          <p className="text-xs text-muted-foreground">创建子账号密钥并分配设备 / TextNow 账号</p>
         </div>
       </div>
 
@@ -149,7 +149,7 @@ export default function AdminPage() {
                 {/* Assignment counts */}
                 <div className="flex gap-2 text-[10px] text-muted-foreground mb-2">
                   <span className="bg-blue-50 text-blue-600 rounded px-1.5 py-0.5">
-                    {sub.assignedPhoneIds.length} 台云手机
+                    {sub.assignedPhoneIds.length} 台设备
                   </span>
                   <span className="bg-emerald-50 text-emerald-600 rounded px-1.5 py-0.5">
                     {sub.assignedAccountIds.length} 个账号
@@ -162,7 +162,7 @@ export default function AdminPage() {
                     onClick={() => openAssign(sub, 'phones')}
                     className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-border text-xs text-slate-600 hover:bg-slate-50 transition"
                   >
-                    <Smartphone size={12} /> 分配云手机
+                    <Smartphone size={12} /> 分配设备
                   </button>
                   <button
                     onClick={() => openAssign(sub, 'accounts')}
@@ -182,7 +182,7 @@ export default function AdminPage() {
           {!selectedSub ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <ShieldCheck size={40} className="mb-3 opacity-30" />
-              <p className="text-sm">选择左侧子账号，分配云手机或 TextNow 账号</p>
+              <p className="text-sm">选择左侧子账号，分配设备或 TextNow 账号</p>
             </div>
           ) : (
             <div className="max-w-2xl">
@@ -192,7 +192,7 @@ export default function AdminPage() {
                     为 <span className="text-primary">{selectedSub.name}</span> 分配资源
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    {assignMode === 'phones' ? '选择允许访问的云手机' : '选择允许访问的 TextNow 账号'}
+                    {assignMode === 'phones' ? '选择允许访问的设备' : '选择允许访问的 TextNow 账号'}
                   </p>
                 </div>
                 <div className="ml-auto flex gap-2">
@@ -205,7 +205,7 @@ export default function AdminPage() {
                         : 'border border-border text-slate-600 hover:bg-slate-50'
                     )}
                   >
-                    云手机
+                    设备
                   </button>
                   <button
                     onClick={() => setAssignMode('accounts')}
@@ -225,7 +225,7 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {cloudPhones.length === 0 && (
                     <p className="text-sm text-muted-foreground col-span-2 py-8 text-center">
-                      暂无云手机，请先在设置里配置 API Key
+                      暂无设备，请先在设置里配置 CartierMiller API Key
                     </p>
                   )}
                   {cloudPhones.map((phone) => {

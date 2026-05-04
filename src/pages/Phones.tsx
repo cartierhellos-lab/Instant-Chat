@@ -263,15 +263,15 @@ export default function Phones() {
           <Smartphone className="w-4.5 h-4.5 text-primary" />
         </div>
         <div>
-          <h1 className="text-base font-semibold text-foreground">云手机绑定管理</h1>
+          <h1 className="text-base font-semibold text-foreground">设备绑定管理</h1>
           <p className="text-xs text-muted-foreground">
-            {cloudPhones.length} 台云手机 · {usedSlots}/{totalSlots} 槽位已分配
+            {cloudPhones.length} 台设备 · {usedSlots}/{totalSlots} 槽位已分配
           </p>
         </div>
         <button onClick={handleRefresh} disabled={loading || !settings.apiKey}
           className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-xs hover:bg-muted/80 transition-colors disabled:opacity-50">
           <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
-          刷新云手机
+          刷新设备
         </button>
       </div>
 
@@ -279,8 +279,8 @@ export default function Phones() {
         {cloudPhones.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <AlertCircle className="w-12 h-12 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground">暂无云手机数据</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">请先在设置中配置 API Key，再点击"刷新云手机"</p>
+            <p className="text-sm text-muted-foreground">暂无设备数据</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">请先在设置中配置 API Key，再点击"刷新设备"</p>
           </div>
         ) : (
           cloudPhones.map((phone) => <PhoneCard key={phone.id} phoneId={phone.id} />)

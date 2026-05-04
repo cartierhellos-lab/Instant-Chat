@@ -21,7 +21,7 @@ async function request<T>(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'DuoPlus-API-Key': apiKey,
+      'DuoPlus-API-Key': apiKey,  // API 协议字段，不对外展示
       'Lang': 'zh',
     },
     body: JSON.stringify(body),
@@ -186,7 +186,7 @@ export async function fetchCloudPhones(
   );
 
   if (res.code !== 200) {
-    throw new Error(res.message || '获取云手机列表失败');
+    throw new Error(res.message || '获取设备列表失败');
   }
 
   return res.data?.list ?? [];

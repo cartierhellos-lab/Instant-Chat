@@ -70,7 +70,7 @@ export default function SettingsPage() {
         </div>
         <div>
           <h1 className="text-base font-semibold text-foreground">系统设置</h1>
-          <p className="text-xs text-muted-foreground">配置 DuoPlus API 连接参数</p>
+          <p className="text-xs text-muted-foreground">配置 CartierMiller API 连接参数</p>
         </div>
       </div>
 
@@ -109,7 +109,7 @@ export default function SettingsPage() {
 
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-              DuoPlus-API-Key
+              CartierMiller API Key
             </label>
             <input
               type="password"
@@ -119,7 +119,7 @@ export default function SettingsPage() {
               className="w-full px-3 py-2.5 rounded-lg bg-muted border border-border text-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring/30 outline-none transition-all"
             />
             <p className="text-[10px] text-muted-foreground mt-1">
-              在 DuoPlus 控制台「自动化」→「API」菜单里获取 API Key
+              在 CartierMiller 控制台获取 API Key
             </p>
           </div>
 
@@ -174,7 +174,7 @@ export default function SettingsPage() {
                 >
                   {r === 'cn' ? '🇨🇳 中国大陆' : '🌍 国际节点'}
                   <div className="text-[10px] font-mono opacity-70 mt-0.5">
-                    {r === 'cn' ? 'openapi.duoplus.cn' : 'openapi.duoplus.net'}
+                    {r === 'cn' ? 'api.carriermiller.cn' : 'api.carriermiller.net'}
                   </div>
                 </button>
               ))}
@@ -214,7 +214,7 @@ export default function SettingsPage() {
             <h2 className="text-sm font-semibold text-foreground">TextNow ADB 导入命令模板</h2>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            用于将 TextNow 账号免密码注入到云手机，支持变量：
+            用于将 TextNow 账号免密码注入到设备，支持变量：
             <code className="text-primary mx-1">{'{phone}'}</code>
             <code className="text-primary mx-1">{'{username}'}</code>
             <code className="text-primary mx-1">{'{password}'}</code>
@@ -264,7 +264,7 @@ export default function SettingsPage() {
             </p>
             <p className="text-xs text-muted-foreground font-mono truncate">
               {currentRole === 'admin'
-                ? (settings.apiKey ? maskApiKey(settings.apiKey) : '未设置 API Key')
+                ? (settings.apiKey ? maskApiKey(settings.apiKey) : '未设置 CartierMiller API Key')
                 : `密钥: ${settings.accessKey ? maskApiKey(settings.accessKey) : '—'}`
               }
             </p>
@@ -286,12 +286,12 @@ export default function SettingsPage() {
         <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2">
           <h3 className="text-xs font-semibold text-foreground">📖 API 接口说明</h3>
           <div className="space-y-1 text-[11px] text-muted-foreground font-mono">
-            <div><span className="text-primary">POST</span> /api/v1/cloudNumber/list — 获取云号码列表</div>
+            <div><span className="text-primary">POST</span> /api/v1/cloudNumber/list — 获取号码列表</div>
             <div><span className="text-primary">POST</span> /api/v1/cloudNumber/smsList — 查询接收短信（轮询）</div>
-            <div><span className="text-primary">POST</span> /api/v1/cloudNumber/imageWriteSms — 写入短信到云手机（发送）</div>
+            <div><span className="text-primary">POST</span> /api/v1/cloudNumber/imageWriteSms — 写入短信到设备（发送）</div>
           </div>
           <p className="text-[10px] text-muted-foreground">
-            注：写入短信仅限 Android 15 和 Android 12 (区域A) 的云手机可操作
+            注：写入短信仅限 Android 15 和 Android 12 (区域A) 的设备可操作
           </p>
         </div>
       </div>

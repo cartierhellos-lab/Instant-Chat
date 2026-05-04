@@ -152,7 +152,7 @@ export default function Accounts() {
 
   const handleInject = async (acc: TextNowAccount) => {
     if (!settings.apiKey) { alert('请先配置 API Key'); return; }
-    if (!acc.assignedPhoneId) { alert('账号未绑定云手机'); return; }
+    if (!acc.assignedPhoneId) { alert('账号未绑定设备'); return; }
     setInjectingId(acc.id);
     const r = await injectAccount(acc.assignedPhoneId, acc.id, settings.apiKey, settings.apiRegion, settings.adbCommandTemplate);
     setInjectingId(null);
@@ -219,7 +219,7 @@ export default function Accounts() {
           </div>
           {/* Cloud phone count */}
           <div className="text-[10px] text-muted-foreground p-2.5 rounded-lg bg-muted/30 border border-border">
-            <p className="font-medium text-foreground mb-1">云手机: {cloudPhones.length} 台</p>
+            <p className="font-medium text-foreground mb-1">设备: {cloudPhones.length} 台</p>
             <p>每台最多 10 个 TextNow 账号</p>
             <p className="mt-0.5">最大容量: {cloudPhones.length * 10} 个账号</p>
           </div>
@@ -278,7 +278,7 @@ export default function Accounts() {
                     <th className="px-3 py-2 text-left text-muted-foreground font-medium">用户名</th>
                     <th className="px-3 py-2 text-left text-muted-foreground font-medium">邮箱</th>
                     <th className="px-3 py-2 text-left text-muted-foreground font-medium">状态</th>
-                    <th className="px-3 py-2 text-left text-muted-foreground font-medium">绑定云手机</th>
+                    <th className="px-3 py-2 text-left text-muted-foreground font-medium">绑定设备</th>
                     <th className="px-3 py-2 text-left text-muted-foreground font-medium">导入时间</th>
                     <th className="px-3 py-2 text-right text-muted-foreground font-medium">操作</th>
                   </tr>
@@ -327,7 +327,7 @@ export default function Accounts() {
                                   onClick={() => handleInject(acc)}
                                   disabled={injectingId === acc.id || acc.status === 'injecting'}
                                   className="flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary text-[10px] hover:bg-primary/20 transition-colors disabled:opacity-50"
-                                  title="ADB注入到云手机"
+                                  title="ADB注入到设备"
                                 >
                                   {injectingId === acc.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
                                   注入
