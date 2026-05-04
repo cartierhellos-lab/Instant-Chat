@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Settings, Key, Globe, RefreshCw, Check, AlertCircle, Wifi, WifiOff, Terminal } from 'lucide-react';
-import { useSettingsStore, useChatStore } from '@/hooks/useStore';
-import { cn, DEFAULT_ADB_TEMPLATE } from '@/lib/index';
+import { Settings, Key, Globe, RefreshCw, Check, AlertCircle, Wifi, WifiOff, Terminal, LogOut, ShieldCheck, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useSettingsStore, useChatStore, useAdminStore } from '@/hooks/useStore';
+import { cn, DEFAULT_ADB_TEMPLATE, ROUTE_PATHS } from '@/lib/index';
 import { fetchCloudNumbers } from '@/api/duoplus';
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const { settings, updateSettings } = useSettingsStore();
-  const { cloudNumbers, loadNumbers, lastError } = useChatStore();
+  const { cloudNumbers, loadNumbers, lastError, stopPolling } = useChatStore();
+  const { currentRole } = useAdminStore();
   const [apiKey, setApiKey] = useState(settings.apiKey);
   const [region, setRegion] = useState(settings.apiRegion);
   const [pollInterval, setPollInterval] = useState(settings.pollInterval);
   const [adbTemplate, setAdbTemplate] = useState(settings.adbCommandTemplate || DEFAULT_ADB_TEMPLATE);
-  const [accessKey, setAccessKey] = useState(settings.accessKey ?? '');
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<'idle' | 'ok' | 'fail'>('idle');
   const [testMsg, setTestMsg] = useState('');
@@ -22,7 +24,6 @@ export default function SettingsPage() {
     setRegion(settings.apiRegion);
     setPollInterval(settings.pollInterval);
     setAdbTemplate(settings.adbCommandTemplate || DEFAULT_ADB_TEMPLATE);
-    setAccessKey(settings.accessKey ?? '');
   }, [settings]);
 
   const handleTest = async () => {
@@ -48,7 +49,7 @@ export default function SettingsPage() {
       apiRegion: region,
       pollInterval: Math.max(3, Math.min(60, pollInterval)),
       adbCommandTemplate: adbTemplate,
-      accessKey: accessKey.trim(),
+      // 不覆盖 accessKey，由登录页管理
     });
     loadNumbers(apiKey, region);
     setSaved(true);
@@ -232,27 +233,6 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* Access Key (子账号分发) */}
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <Key className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">访问密钥（子账号登录）</h2>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            管理员留空即可。如果你是子账号用户，请在此输入管理员分配给你的密钥。
-          </p>
-          <input
-            type="text"
-            value={accessKey}
-            onChange={(e) => setAccessKey(e.target.value)}
-            placeholder="留空 = 管理员模式 | 粘贴子账号密钥 = 普通用户模式"
-            className="w-full font-mono text-sm border border-input rounded-xl px-4 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <p className="text-[10px] text-muted-foreground">
-            子账号只能访问被分配的云手机和 TextNow 账号，账号库入口将被隐藏。
-          </p>
-        </div>
-
         {/* Save button */}
         <button
           onClick={handleSave}
@@ -266,6 +246,41 @@ export default function SettingsPage() {
           {saved ? <Check className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
           {saved ? '已保存！' : '保存并应用设置'}
         </button>
+
+        {/* 当前身份 + 登出 */}
+        <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+          <div className={cn(
+            'flex items-center justify-center w-8 h-8 rounded-lg shrink-0',
+            currentRole === 'admin' ? 'bg-primary/10' : 'bg-muted'
+          )}>
+            {currentRole === 'admin'
+              ? <ShieldCheck className="w-4 h-4 text-primary" />
+              : <User className="w-4 h-4 text-muted-foreground" />
+            }
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">
+              {currentRole === 'admin' ? '管理员' : '子账号用户'}
+            </p>
+            <p className="text-xs text-muted-foreground font-mono truncate">
+              {currentRole === 'admin'
+                ? (settings.apiKey ? maskApiKey(settings.apiKey) : '未设置 API Key')
+                : `密钥: ${settings.accessKey ? maskApiKey(settings.accessKey) : '—'}`
+              }
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              stopPolling();
+              updateSettings({ accessKey: undefined });
+              navigate(ROUTE_PATHS.LOGIN, { replace: true });
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-destructive hover:bg-destructive/10 transition-colors border border-destructive/20"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            退出登录
+          </button>
+        </div>
 
         {/* API docs hint */}
         <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2">

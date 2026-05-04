@@ -188,7 +188,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   apiRegion: 'cn',
   pollInterval: 5,
   adbCommandTemplate: DEFAULT_ADB_TEMPLATE,
-  accessKey: '',
+  accessKey: undefined,  // undefined = 未登录；'' = 管理员已登录；'xxx' = 子账号已登录
 };
 
 // ============================================================

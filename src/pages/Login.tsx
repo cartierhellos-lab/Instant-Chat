@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LogIn, Loader2 } from 'lucide-react';
-import { useSettingsStore, useAdminStore } from '@/hooks/useStore';
+import { Eye, EyeOff, LogIn, Loader2, Shield, Users } from 'lucide-react';
+import { useSettingsStore, useAdminStore, useChatStore } from '@/hooks/useStore';
 import { ROUTE_PATHS } from '@/lib/index';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { settings, updateSettings } = useSettingsStore();
-  const { resolveRole, setRole, subAccounts } = useAdminStore();
+  const { setRole, subAccounts } = useAdminStore();
+  const { startPolling } = useChatStore();
 
   const [key, setKey] = useState('');
   const [show, setShow] = useState(false);
@@ -15,9 +16,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // 已登录直接跳过
+  // 已登录则跳过（accessKey !== undefined 表示已经登录过）
   useEffect(() => {
-    if (settings.accessKey !== undefined && settings.accessKey !== '') {
+    if (settings.accessKey !== undefined) {
       navigate(ROUTE_PATHS.HOME, { replace: true });
     }
   }, []);
@@ -38,33 +39,57 @@ export default function LoginPage() {
 
     setLoading(true);
     setError('');
-    await new Promise(r => setTimeout(r, 600)); // 动画缓冲
+    await new Promise(r => setTimeout(r, 500));
 
-    // 判断角色：管理员 API Key 或子账号 key
-    const isAdmin = trimmed === settings.apiKey ||
-      (!settings.apiKey && trimmed.length > 10);
-    const isSub = subAccounts.some(s => s.key === trimmed);
+    // ── 管理员判断 ─────────────────────────────────────────────
+    // 规则：输入的 key 与已保存的 apiKey 相同 → 管理员
+    //       首次登录（apiKey 尚未设置）且 key 看起来是合法 UUID → 视为管理员 API Key
+    const savedApiKey = settings.apiKey;
+    const isFirstTime = !savedApiKey;
+    const isAdminKey = savedApiKey && trimmed === savedApiKey;
+    const looksLikeApiKey = /^[0-9a-f-]{32,}$/i.test(trimmed); // UUID 格式
 
-    if (!settings.apiKey && !isSub) {
-      // 首次登录：视为管理员，保存 API Key
-      updateSettings({ apiKey: trimmed, accessKey: trimmed });
+    // ── 子账号判断 ─────────────────────────────────────────────
+    const matchedSub = subAccounts.find(s => s.key === trimmed);
+
+    if (isFirstTime && looksLikeApiKey) {
+      // 首次登录：将输入的 key 作为 DuoPlus API Key 保存
+      // accessKey = '' 表示当前用户是管理员
+      updateSettings({ apiKey: trimmed, accessKey: '' });
       setRole('admin');
+      startPolling(trimmed, settings.apiRegion, settings.pollInterval);
       navigate(ROUTE_PATHS.HOME, { replace: true });
       return;
     }
 
-    if (isAdmin) {
-      updateSettings({ accessKey: '' }); // 管理员 accessKey 留空
+    if (isAdminKey) {
+      // 已有 apiKey，且输入匹配 → 管理员登录
+      updateSettings({ accessKey: '' }); // '' = admin
       setRole('admin');
+      startPolling(savedApiKey, settings.apiRegion, settings.pollInterval);
       navigate(ROUTE_PATHS.HOME, { replace: true });
-    } else if (isSub) {
+      return;
+    }
+
+    if (matchedSub) {
+      // 子账号登录
       updateSettings({ accessKey: trimmed });
-      setRole('user', subAccounts.find(s => s.key === trimmed)?.id);
+      setRole('user', matchedSub.id);
+      // 子账号也可以使用 API（用管理员的 apiKey 操作其分配的资源）
+      if (savedApiKey) {
+        startPolling(savedApiKey, settings.apiRegion, settings.pollInterval);
+      }
       navigate(ROUTE_PATHS.HOME, { replace: true });
+      return;
+    }
+
+    // 无匹配
+    if (isFirstTime && !looksLikeApiKey) {
+      setError('格式不正确，请输入 DuoPlus API Key（UUID格式）');
     } else {
       setError('密钥无效，请联系管理员获取访问权限');
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -73,7 +98,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex items-center justify-center w-screen h-screen overflow-hidden bg-black">
-      {/* ── 背景视频 ── */}
+      {/* 背景视频 */}
       <video
         ref={videoRef}
         src="/bg.mp4"
@@ -84,13 +109,12 @@ export default function LoginPage() {
         playsInline
         preload="auto"
       />
-
-      {/* ── 渐变遮罩（底部加深，保证卡片可读性） ── */}
+      {/* 渐变遮罩 */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/50" />
 
-      {/* ── 磨砂玻璃登录卡片 ── */}
+      {/* 磨砂玻璃卡片 */}
       <div
-        className="relative z-10 w-[380px] rounded-3xl px-8 py-10 flex flex-col items-center gap-6"
+        className="relative z-10 w-[400px] rounded-3xl px-8 py-10 flex flex-col items-center gap-5"
         style={{
           background: 'rgba(255,255,255,0.12)',
           backdropFilter: 'blur(24px) saturate(180%)',
@@ -106,48 +130,52 @@ export default function LoginPage() {
             style={{
               background: 'rgba(255,255,255,0.18)',
               border: '1px solid rgba(255,255,255,0.30)',
-              boxShadow: '0 2px 16px rgba(0,0,0,0.20)',
             }}
           >
-            {/* Phone icon svg */}
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.93 12 19.79 19.79 0 0 1 1.9 3.38 2 2 0 0 1 3.68 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.65a16 16 0 0 0 6.44 6.44l1.02-1.01a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
             </svg>
           </div>
           <h1 className="text-white text-xl font-bold tracking-wide">Instant Chat</h1>
-          <p className="text-white/60 text-xs text-center">DuoPlus 云手机智能管理平台</p>
+          <p className="text-white/55 text-xs">DuoPlus 云手机智能管理平台</p>
         </div>
 
-        {/* Divider */}
-        <div className="w-full h-px" style={{ background: 'rgba(255,255,255,0.18)' }} />
+        <div className="w-full h-px" style={{ background: 'rgba(255,255,255,0.15)' }} />
+
+        {/* 说明提示 */}
+        <div className="w-full grid grid-cols-2 gap-2 text-[10px]">
+          <div className="flex items-start gap-1.5 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <Shield size={11} className="text-white/70 mt-0.5 shrink-0" />
+            <span className="text-white/60 leading-relaxed">管理员<br/>输入 DuoPlus API Key</span>
+          </div>
+          <div className="flex items-start gap-1.5 px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <Users size={11} className="text-white/70 mt-0.5 shrink-0" />
+            <span className="text-white/60 leading-relaxed">子账号<br/>输入分配的密钥</span>
+          </div>
+        </div>
 
         {/* Key input */}
-        <div className="w-full space-y-3">
-          <label className="block text-white/80 text-xs font-medium mb-1">访问密钥</label>
+        <div className="w-full space-y-2">
+          <label className="block text-white/75 text-xs font-medium">访问密钥</label>
           <div className="relative">
             <input
               type={show ? 'text' : 'password'}
               value={key}
               onChange={e => { setKey(e.target.value); setError(''); }}
               onKeyDown={handleKeyDown}
-              placeholder="输入管理员 API Key 或子账号密钥"
+              placeholder="粘贴 API Key 或子账号密钥…"
               autoComplete="off"
-              className="w-full pr-10 pl-4 py-3 rounded-xl text-sm text-white placeholder:text-white/40 outline-none transition-all"
+              className="w-full pr-10 pl-4 py-3 rounded-xl text-sm text-white placeholder:text-white/35 outline-none transition-all"
               style={{
                 background: 'rgba(255,255,255,0.10)',
-                border: error
-                  ? '1px solid rgba(239,68,68,0.6)'
-                  : '1px solid rgba(255,255,255,0.20)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10)',
+                border: error ? '1px solid rgba(239,68,68,0.6)' : '1px solid rgba(255,255,255,0.20)',
               }}
               onFocus={e => {
                 e.target.style.border = '1px solid rgba(255,255,255,0.50)';
                 e.target.style.background = 'rgba(255,255,255,0.15)';
               }}
               onBlur={e => {
-                e.target.style.border = error
-                  ? '1px solid rgba(239,68,68,0.6)'
-                  : '1px solid rgba(255,255,255,0.20)';
+                e.target.style.border = error ? '1px solid rgba(239,68,68,0.6)' : '1px solid rgba(255,255,255,0.20)';
                 e.target.style.background = 'rgba(255,255,255,0.10)';
               }}
             />
@@ -159,11 +187,7 @@ export default function LoginPage() {
               {show ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
-
-          {/* Error */}
-          {error && (
-            <p className="text-red-400 text-xs px-1">{error}</p>
-          )}
+          {error && <p className="text-red-400 text-xs px-1">{error}</p>}
         </div>
 
         {/* Login button */}
@@ -172,30 +196,22 @@ export default function LoginPage() {
           disabled={loading || !key.trim()}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50"
           style={{
-            background: loading
-              ? 'rgba(255,255,255,0.15)'
-              : 'rgba(255,255,255,0.90)',
+            background: loading ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.90)',
             color: loading ? 'rgba(255,255,255,0.7)' : '#1a1a2e',
-            boxShadow: '0 2px 16px rgba(0,0,0,0.20)',
           }}
           onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,1)'; }}
           onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.90)'; }}
         >
           {loading
-            ? <><Loader2 size={15} className="animate-spin" /> 验证中…</>
-            : <><LogIn size={15} /> 进入系统</>
+            ? <><Loader2 size={15} className="animate-spin" />验证中…</>
+            : <><LogIn size={15} />进入系统</>
           }
         </button>
-
-        {/* Hint */}
-        <p className="text-white/35 text-[10px] text-center leading-relaxed">
-          管理员请输入 DuoPlus API Key · 子账号请输入分配的密钥
-        </p>
       </div>
 
       {/* 底部水印 */}
       <div className="absolute bottom-5 left-0 right-0 flex justify-center">
-        <span className="text-white/25 text-[10px] tracking-widest font-mono">POWERED BY DUOPLUS</span>
+        <span className="text-white/20 text-[10px] tracking-widest font-mono">POWERED BY DUOPLUS</span>
       </div>
     </div>
   );

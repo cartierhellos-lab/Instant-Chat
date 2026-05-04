@@ -1,6 +1,6 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ROUTE_PATHS } from '@/lib/index';
-import { useSettingsStore, useAdminStore } from '@/hooks/useStore';
+import { useSettingsStore } from '@/hooks/useStore';
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
 import Accounts from '@/pages/Accounts';
@@ -13,13 +13,9 @@ import LoginPage from '@/pages/Login';
 /** 已验证身份才能访问，否则跳转登录页 */
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { settings } = useSettingsStore();
-  const { currentRole } = useAdminStore();
 
-  // accessKey 有值（包括空字符串，代表管理员） OR 非默认角色已设置 → 视为已登录
-  // accessKey === undefined 且 currentRole 从未手动 setRole → 未登录
-  const isAuthed = settings.accessKey !== undefined && settings.accessKey !== null;
-
-  if (!isAuthed) {
+  // accessKey === undefined 表示从未登录过（区别于 '' 管理员 / 'xxx' 子账号）
+  if (settings.accessKey === undefined) {
     return <Navigate to={ROUTE_PATHS.LOGIN} replace />;
   }
   return <>{children}</>;
