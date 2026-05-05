@@ -6,6 +6,8 @@ import { cn, ROUTE_PATHS, generateSubKey, formatTime } from '@/lib/index';
 import { fetchCloudNumbers } from '@/api/duoplus';
 import { reinitSupabase, testSupabaseConnection } from '@/api/supabase';
 import type { SubAccount } from '@/lib/index';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { toast } from '@/hooks/use-toast';
 
 // ─── 管理员 Tab 内容（原 Admin.tsx 功能）──────────────────────────────────────
 function AdminPanel() {
@@ -20,6 +22,7 @@ function AdminPanel() {
   const [phoneSelections, setPhoneSelections] = useState<string[]>([]);
   const [accountSelections, setAccountSelections] = useState<string[]>([]);
   const [assignMode, setAssignMode] = useState<'phones' | 'accounts'>('phones');
+  const [regenTarget, setRegenTarget] = useState<SubAccount | null>(null);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -35,9 +38,17 @@ function AdminPanel() {
   };
 
   const handleRegenKey = (sub: SubAccount) => {
-    if (confirm(`确定要重置 "${sub.name}" 的密钥吗？旧密钥将立即失效。`)) {
-      updateSubAccount(sub.id, { key: generateSubKey() });
-    }
+    setRegenTarget(sub);
+  };
+
+  const confirmRegenKey = () => {
+    if (!regenTarget) return;
+    updateSubAccount(regenTarget.id, { key: generateSubKey() });
+    toast({
+      title: '密钥已重置',
+      description: `“${regenTarget.name}” 的旧密钥已失效。`,
+    });
+    setRegenTarget(null);
   };
 
   const handleSaveAssign = () => {
@@ -52,108 +63,109 @@ function AdminPanel() {
   };
 
   return (
-    <div className="flex flex-1 overflow-hidden min-h-0">
-      {/* Left: create + list */}
-      <div className="tool-sidebar w-72 flex flex-col overflow-y-auto shrink-0">
-        {/* Create form */}
-        <div className="p-4 border-b border-[#dbe2e9]">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">新建子账号</p>
-          <input
-            className="tool-input h-8 px-3 text-sm mb-2"
-            placeholder="子账号名称（必填）"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-          />
-          <input
-            className="tool-input h-8 px-3 text-sm mb-3"
-            placeholder="备注（选填）"
-            value={newNote}
-            onChange={(e) => setNewNote(e.target.value)}
-          />
-          <button
-            onClick={handleCreate}
-            disabled={!newName.trim()}
-            className="tool-btn tool-btn-primary w-full justify-center py-2 text-sm font-medium disabled:opacity-40"
-          >
-            <Plus size={15} /> 生成密钥
-          </button>
+    <>
+      <div className="flex flex-1 overflow-hidden min-h-0">
+        {/* Left: create + list */}
+        <div className="tool-sidebar w-72 flex flex-col overflow-y-auto shrink-0">
+          {/* Create form */}
+          <div className="p-4 border-b border-[#dbe2e9]">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">新建子账号</p>
+            <input
+              className="tool-input h-8 px-3 text-sm mb-2"
+              placeholder="子账号名称（必填）"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+            <input
+              className="tool-input h-8 px-3 text-sm mb-3"
+              placeholder="备注（选填）"
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+            />
+            <button
+              onClick={handleCreate}
+              disabled={!newName.trim()}
+              className="tool-btn tool-btn-primary w-full justify-center py-2 text-sm font-medium disabled:opacity-40"
+            >
+              <Plus size={15} /> 生成密钥
+            </button>
+          </div>
+
+          {/* Sub account list */}
+          <div className="flex-1 overflow-y-auto">
+            {subAccounts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-40 text-center px-4">
+                <Users size={32} className="text-muted-foreground/30 mb-2" />
+                <p className="text-xs text-muted-foreground">暂无子账号</p>
+              </div>
+            ) : (
+              subAccounts.map((sub) => (
+                <div
+                  key={sub.id}
+                  className={cn(
+                    'p-3 border-b border-[#dbe2e9] cursor-pointer hover:bg-white/70 transition',
+                    selectedSub?.id === sub.id && 'bg-primary/5'
+                  )}
+                  onClick={() => setSelectedSub(sub)}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-foreground">{sub.name}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteSubAccount(sub.id); if (selectedSub?.id === sub.id) setSelectedSub(null); }}
+                      className="p-1 rounded hover:bg-white text-muted-foreground hover:text-destructive transition"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                  {sub.note && <p className="text-[10px] text-muted-foreground mb-1">{sub.note}</p>}
+                  <div className="flex items-center gap-1">
+                    <code className="text-[10px] font-mono text-muted-foreground bg-muted rounded px-1.5 py-0.5 flex-1 truncate">
+                      {sub.key}
+                    </code>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleCopy(sub.key, sub.id + '-key'); }}
+                      className="p-1 rounded hover:bg-white transition"
+                      title="复制密钥"
+                    >
+                      {copiedId === sub.id + '-key' ? <Check size={11} className="text-green-400" /> : <Copy size={11} className="text-muted-foreground" />}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRegenKey(sub); }}
+                      className="p-1 rounded hover:bg-white transition"
+                      title="重置密钥"
+                    >
+                      <RefreshCw size={11} className="text-muted-foreground" />
+                    </button>
+                  </div>
+                  <div className="flex gap-2 mt-1.5 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-0.5"><Smartphone size={9} /> {sub.assignedPhoneIds.length} 台设备</span>
+                    <span className="flex items-center gap-0.5"><Users size={9} /> {sub.assignedAccountIds.length} 个账号</span>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">{formatTime(sub.createdAt)}</p>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
-        {/* Sub account list */}
-        <div className="flex-1 overflow-y-auto">
-          {subAccounts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 text-center px-4">
-              <Users size={32} className="text-muted-foreground/30 mb-2" />
-              <p className="text-xs text-muted-foreground">暂无子账号</p>
+        {/* Right: assign panel */}
+        <div className="flex-1 overflow-y-auto p-5">
+          {!selectedSub ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <ShieldCheck size={36} className="text-muted-foreground/20 mb-3" />
+              <p className="text-sm text-muted-foreground">从左侧选择子账号进行资源分配</p>
             </div>
           ) : (
-            subAccounts.map((sub) => (
-              <div
-                key={sub.id}
-                className={cn(
-                  'p-3 border-b border-[#dbe2e9] cursor-pointer hover:bg-white/70 transition',
-                  selectedSub?.id === sub.id && 'bg-primary/5'
-                )}
-                onClick={() => setSelectedSub(sub)}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-foreground">{sub.name}</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); deleteSubAccount(sub.id); if (selectedSub?.id === sub.id) setSelectedSub(null); }}
-                    className="p-1 rounded hover:bg-white text-muted-foreground hover:text-destructive transition"
-                  >
-                    <Trash2 size={12} />
-                  </button>
+            <div className="space-y-4 max-w-lg">
+              <div className="flex items-center gap-2 pb-3 border-b border-border">
+                <div className="w-8 h-8 rounded-lg bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)] flex items-center justify-center">
+                  <User size={15} className="text-primary" />
                 </div>
-                {sub.note && <p className="text-[10px] text-muted-foreground mb-1">{sub.note}</p>}
-                <div className="flex items-center gap-1">
-                  <code className="text-[10px] font-mono text-muted-foreground bg-muted rounded px-1.5 py-0.5 flex-1 truncate">
-                    {sub.key}
-                  </code>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleCopy(sub.key, sub.id + '-key'); }}
-                    className="p-1 rounded hover:bg-white transition"
-                    title="复制密钥"
-                  >
-                    {copiedId === sub.id + '-key' ? <Check size={11} className="text-green-400" /> : <Copy size={11} className="text-muted-foreground" />}
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleRegenKey(sub); }}
-                    className="p-1 rounded hover:bg-white transition"
-                    title="重置密钥"
-                  >
-                    <RefreshCw size={11} className="text-muted-foreground" />
-                  </button>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{selectedSub.name}</p>
+                  {selectedSub.note && <p className="text-xs text-muted-foreground">{selectedSub.note}</p>}
                 </div>
-                <div className="flex gap-2 mt-1.5 text-[10px] text-muted-foreground">
-                  <span className="flex items-center gap-0.5"><Smartphone size={9} /> {sub.assignedPhoneIds.length} 台设备</span>
-                  <span className="flex items-center gap-0.5"><Users size={9} /> {sub.assignedAccountIds.length} 个账号</span>
-                </div>
-                <p className="text-[9px] text-muted-foreground mt-0.5">{formatTime(sub.createdAt)}</p>
               </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Right: assign panel */}
-      <div className="flex-1 overflow-y-auto p-5">
-        {!selectedSub ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <ShieldCheck size={36} className="text-muted-foreground/20 mb-3" />
-            <p className="text-sm text-muted-foreground">从左侧选择子账号进行资源分配</p>
-          </div>
-        ) : (
-          <div className="space-y-4 max-w-lg">
-            <div className="flex items-center gap-2 pb-3 border-b border-border">
-              <div className="w-8 h-8 rounded-lg bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)] flex items-center justify-center">
-                <User size={15} className="text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">{selectedSub.name}</p>
-                {selectedSub.note && <p className="text-xs text-muted-foreground">{selectedSub.note}</p>}
-              </div>
-            </div>
 
             {/* Assign mode switcher */}
             <div className="flex gap-2">
@@ -221,16 +233,27 @@ function AdminPanel() {
               </div>
             )}
 
-            <button
-              onClick={handleSaveAssign}
-              className="tool-btn tool-btn-primary w-full justify-center py-2 text-sm font-medium"
-            >
-              <Check size={14} /> 保存分配
-            </button>
-          </div>
-        )}
+              <button
+                onClick={handleSaveAssign}
+                className="tool-btn tool-btn-primary w-full justify-center py-2 text-sm font-medium"
+              >
+                <Check size={14} /> 保存分配
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+      <ConfirmDialog
+        open={!!regenTarget}
+        onOpenChange={(open) => !open && setRegenTarget(null)}
+        title="重置子账号密钥？"
+        description={`重置后，“${regenTarget?.name ?? ''}” 的旧密钥将立即失效。`}
+        confirmText="确认重置"
+        cancelText="取消"
+        destructive
+        onConfirm={confirmRegenKey}
+      />
+    </>
   );
 }
 
@@ -261,6 +284,7 @@ export default function SettingsPage() {
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [ollamaTestResult, setOllamaTestResult] = useState<'idle' | 'ok' | 'fail'>('idle');
   const [ollamaTestMsg, setOllamaTestMsg] = useState('');
+  const [ollamaTesting, setOllamaTesting] = useState(false);
   const [sbTestResult, setSbTestResult] = useState<'idle' | 'ok' | 'fail'>('idle');
   const [sbTestMsg, setSbTestMsg] = useState('');
   const [sbSaved, setSbSaved] = useState(false);
@@ -380,7 +404,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-2">
               <button onClick={handleTest} disabled={!apiKey || testing}
                 className="tool-btn h-6 px-3 text-[10px] disabled:opacity-40">
-                {testing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wifi className="w-3 h-3" />}测试连接
+                {testing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wifi className="w-3 h-3" />}{testing ? '连接中…' : '测试连接'}
               </button>
               {testResult !== 'idle' && (
                 <span className={cn('flex items-center gap-1 text-[10px]', testResult === 'ok' ? 'text-green-600' : 'text-red-500')}>
@@ -454,14 +478,16 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={async () => {
+                    setOllamaTesting(true);
                     setOllamaTestResult('idle'); setOllamaTestMsg('');
                     const { testOllamaConnection } = await import('@/api/translate');
                     const r = await testOllamaConnection(ollamaUrl);
                     setOllamaTestResult(r.ok ? 'ok' : 'fail');
                     setOllamaTestMsg(r.ok ? `连接成功，${r.models.length} 个模型` : r.error ?? '连接失败');
                     if (r.ok) setOllamaModels(r.models);
-                  }} className="tool-btn h-6 px-2.5 text-[10px]">
-                    <Wifi className="w-3 h-3" />测试 Ollama
+                    setOllamaTesting(false);
+                  }} disabled={ollamaTesting} className="tool-btn h-6 px-2.5 text-[10px] disabled:opacity-40">
+                    {ollamaTesting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wifi className="w-3 h-3" />}{ollamaTesting ? '检测中…' : '测试 Ollama'}
                   </button>
                   {ollamaTestResult !== 'idle' && (
                     <span className={cn('flex items-center gap-1 text-[10px]', ollamaTestResult === 'ok' ? 'text-green-600' : 'text-red-500')}>
@@ -493,7 +519,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-2">
               <button onClick={handleSbTest} disabled={!sbUrl.trim() || !sbKey.trim() || sbTesting}
                 className="tool-btn h-6 px-2.5 text-[10px] disabled:opacity-40">
-                {sbTesting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wifi className="w-3 h-3" />}测试
+                {sbTesting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wifi className="w-3 h-3" />}{sbTesting ? '检测中…' : '测试'}
               </button>
               <button onClick={handleSbSave} disabled={!sbUrl.trim() || !sbKey.trim()}
                 className={cn('tool-btn h-6 px-2.5 text-[10px] font-medium disabled:opacity-40',

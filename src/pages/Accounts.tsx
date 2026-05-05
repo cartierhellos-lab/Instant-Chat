@@ -4,6 +4,8 @@ import { useAccountStore, useChatStore, useSettingsStore } from '@/hooks/useStor
 import { parseTxtAccounts } from '@/api/duoplus';
 import { cn, statusLabel, formatTime, DEFAULT_ADB_TEMPLATE } from '@/lib/index';
 import type { AccountStatus, TextNowAccount } from '@/lib/index';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { toast } from '@/hooks/use-toast';
 
 const STATUS_FILTERS: { label: string; value: AccountStatus | 'all' }[] = [
   { label: '全部', value: 'all' }, { label: '可用', value: 'available' },
@@ -116,6 +118,8 @@ export default function Accounts() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [importMsg, setImportMsg] = useState('');
   const [injectingId, setInjectingId] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
 
   const filtered = accounts.filter(a => {
     if (filter !== 'all' && a.status !== filter) return false;
@@ -139,18 +143,48 @@ export default function Accounts() {
 
   const handleDeleteSelected = () => {
     if (selected.size === 0) return;
-    if (!confirm(`确定删除选中的 ${selected.size} 个账号？`)) return;
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteSelected = () => {
     deleteSelected([...selected]);
     setSelected(new Set());
+    setDeleteConfirmOpen(false);
+    toast({
+      title: '账号已删除',
+      description: `已删除 ${selected.size} 个账号。`,
+    });
+    setStatusMsg(`已删除 ${selected.size} 个账号`);
   };
 
   const handleInject = async (acc: TextNowAccount) => {
-    if (!settings.apiKey) { alert('请先配置 API Key'); return; }
-    if (!acc.assignedPhoneId) { alert('账号未绑定设备'); return; }
+    if (!settings.apiKey) {
+      toast({
+        title: '缺少 API Key',
+        description: '请先在设置中配置 CartierMiller API Key。',
+        variant: 'destructive',
+      });
+      setStatusMsg('请先配置 API Key');
+      return;
+    }
+    if (!acc.assignedPhoneId) {
+      toast({
+        title: '无法注入账号',
+        description: '该账号尚未绑定设备。',
+        variant: 'destructive',
+      });
+      setStatusMsg('账号未绑定设备');
+      return;
+    }
     setInjectingId(acc.id);
     const r = await injectAccount(acc.assignedPhoneId, acc.id, settings.apiKey, settings.apiRegion, settings.adbCommandTemplate);
     setInjectingId(null);
-    alert(r.success ? `✓ 注入成功：${r.message}` : `✗ 注入失败：${r.message}`);
+    toast({
+      title: r.success ? '注入成功' : '注入失败',
+      description: r.message,
+      variant: r.success ? 'default' : 'destructive',
+    });
+    setStatusMsg(r.success ? '注入成功' : r.message);
   };
 
   const stats = {
@@ -160,7 +194,8 @@ export default function Accounts() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
+    <>
+      <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
       {/* 工具栏 */}
       <div className="tool-toolbar flex items-center gap-3 px-4 py-2 shrink-0">
         <Users className="w-4 h-4 text-muted-foreground" />
@@ -168,6 +203,7 @@ export default function Accounts() {
         <span className="text-[10px] text-muted-foreground font-mono">
           {accounts.length} 个 · 可用 {stats.available} · 已分配 {stats.assigned} · 封禁 {stats.banned}
         </span>
+        {statusMsg && <span className="text-[10px] text-muted-foreground">{statusMsg}</span>}
         {selected.size > 0 && (
           <button onClick={handleDeleteSelected}
             className="ml-auto flex items-center gap-1 h-6 px-2.5 rounded border border-red-300 bg-red-50 text-red-600 text-[10px] font-medium hover:bg-red-100 transition-colors">
@@ -281,7 +317,7 @@ export default function Accounts() {
                             {acc.assignedPhoneId && (
                               <button onClick={() => handleInject(acc)} disabled={injectingId === acc.id}
                                 className="tool-btn h-5 px-1.5 text-[9px] disabled:opacity-40">
-                                {injectingId === acc.id ? <RefreshCw className="w-2.5 h-2.5 animate-spin" /> : <Zap className="w-2.5 h-2.5" />}注入
+                                {injectingId === acc.id ? <RefreshCw className="w-2.5 h-2.5 animate-spin" /> : <Zap className="w-2.5 h-2.5" />}{injectingId === acc.id ? '注入中…' : '注入'}
                               </button>
                             )}
                             {acc.status !== 'banned' ? (
@@ -302,6 +338,17 @@ export default function Accounts() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="删除选中账号？"
+        description={`该操作会删除当前选中的 ${selected.size} 个账号，且无法恢复。`}
+        confirmText="确认删除"
+        cancelText="取消"
+        destructive
+        onConfirm={confirmDeleteSelected}
+      />
+    </>
   );
 }

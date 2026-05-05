@@ -8,6 +8,7 @@ import Phones from '@/pages/Phones';
 import Tasks from '@/pages/Tasks';
 import SettingsPage from '@/pages/SettingsPage';
 import LoginPage from '@/pages/Login';
+import { Toaster } from '@/components/ui/toaster';
 
 /** 已验证身份才能访问，否则跳转登录页 */
 function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -45,6 +46,7 @@ export default function App() {
         {/* 兜底 */}
         <Route path="*" element={<Navigate to={ROUTE_PATHS.LOGIN} replace />} />
       </Routes>
+      <Toaster />
     </Router>
   );
 }
