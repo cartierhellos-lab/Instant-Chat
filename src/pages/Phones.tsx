@@ -10,7 +10,7 @@ function IpCopyButton({ ip }: { ip: string }) {
   return (
     <button
       onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(ip).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="flex items-center justify-center w-5 h-5 rounded hover:bg-[#e0e0e0] transition-colors shrink-0"
+      className="flex items-center justify-center w-5 h-5 rounded hover:bg-white/80 transition-colors shrink-0"
       title="复制 IP"
     >
       {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
@@ -31,7 +31,7 @@ function SlotGrid({ binding, accounts, availableAccounts, onAssign, onInject, on
           {binding.slots.filter(Boolean).length}/{MAX_SLOTS} 槽位已分配 · 活跃: 槽{binding.activeSlot + 1}
         </span>
         <button onClick={onAutoAssign} disabled={availableAccounts.length === 0}
-          className="flex items-center gap-0.5 h-5 px-2 rounded border border-[#c8c8c8] bg-white text-[10px] text-foreground/70 hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">
+          className="tool-btn h-5 px-2 text-[10px] disabled:opacity-40">
           <Plus className="w-3 h-3" />自动补全
         </button>
       </div>
@@ -44,7 +44,7 @@ function SlotGrid({ binding, accounts, availableAccounts, onAssign, onInject, on
           return (
             <div key={slotIdx} className={cn(
               'rounded border p-1.5 min-h-[68px] transition-colors',
-              isActive ? 'border-primary bg-primary/5' : 'border-[#e0e0e0] bg-white',
+              isActive ? 'border-primary bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)]' : 'border-[#dbe2e9] bg-white',
               !acc && 'border-dashed'
             )}>
               <div className={cn('text-[9px] font-mono font-semibold mb-1', isActive ? 'text-primary' : 'text-muted-foreground/60')}>
@@ -56,11 +56,11 @@ function SlotGrid({ binding, accounts, availableAccounts, onAssign, onInject, on
                   <div className={cn('text-[9px] mt-0.5', statusColor(acc.status))}>{statusLabel(acc.status)}</div>
                   <div className="flex gap-0.5 mt-1">
                     <button onClick={() => onInject(slotIdx)} disabled={!!injectingId}
-                      className="flex items-center gap-0.5 h-4 px-1 rounded border border-[#c8c8c8] bg-[#f5f5f5] text-[9px] text-foreground/70 hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">
+                      className="tool-btn h-4 px-1 text-[9px] disabled:opacity-40">
                       {isInjecting ? <RefreshCw className="w-2 h-2 animate-spin" /> : <Zap className="w-2 h-2" />}
                     </button>
                     <button onClick={() => onAssign(slotIdx, null)}
-                      className="h-4 px-1 rounded border border-[#e0e0e0] bg-[#f5f5f5] text-[9px] text-muted-foreground hover:border-red-400 hover:text-red-500 transition-colors">✕</button>
+                      className="h-4 px-1 rounded-[5px] border border-[#dbe2e9] bg-[#f5f7fa] text-[9px] text-muted-foreground hover:border-red-400 hover:text-red-500 transition-colors">✕</button>
                   </div>
                 </>
               ) : (
@@ -81,7 +81,7 @@ function SlotGrid({ binding, accounts, availableAccounts, onAssign, onInject, on
 // ─── 设备卡片 ────────────────────────────────────────────────────────────────
 function PhoneCard({ phoneId }: { phoneId: string }) {
   const { cloudPhones } = useChatStore();
-  const { accounts, bindings, ensureBinding, assignToSlot, autoAssign, injectAccount, getBinding, advanceSlot, autoReplace } = useAccountStore();
+  const { accounts, ensureBinding, assignToSlot, autoAssign, injectAccount, getBinding, advanceSlot, autoReplace } = useAccountStore();
   const { settings } = useSettingsStore();
   const [injectingId, setInjectingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -124,9 +124,9 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
   };
 
   return (
-    <div className="border border-[#d8d8d8] rounded bg-white overflow-hidden">
+    <div className="tool-panel overflow-hidden">
       {/* 行头 */}
-      <div className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[#f8f8f8] transition-colors border-b border-[#ebebeb]"
+      <div className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-white/70 transition-colors border-b border-[#ebebeb]"
         onClick={() => { ensureBinding(phoneId); setExpanded(p => !p); }}>
         <Smartphone className={cn('w-4 h-4 shrink-0', phone?.status === 1 ? 'text-green-600' : 'text-muted-foreground/40')} />
         <div className="flex-1 min-w-0">
@@ -146,7 +146,7 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
 
       {/* 展开区 */}
       {expanded && (
-        <div className="px-3 py-3 space-y-3 bg-[#fafafa]">
+        <div className="px-3 py-3 space-y-3 bg-[linear-gradient(180deg,#fbfcfe_0%,#f4f7fa_100%)]">
           <div className="flex items-center gap-1.5 flex-wrap">
             {[
               { label: '批量注入', icon: <Zap className="w-3 h-3" />, onClick: handleInjectAll, disabled: assignedCount === 0 || !!injectingId, color: 'text-primary' },
@@ -155,7 +155,7 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
               { label: '切换槽位', icon: <RefreshCw className="w-3 h-3" />, onClick: () => advanceSlot(phoneId), disabled: false, color: 'text-foreground/60' },
             ].map(btn => (
               <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled}
-                className={cn('flex items-center gap-1 h-6 px-2.5 rounded border border-[#c8c8c8] bg-white text-[10px] font-medium hover:border-primary hover:text-primary disabled:opacity-40 transition-colors', btn.color)}>
+                className={cn('tool-btn h-6 px-2.5 text-[10px] font-medium disabled:opacity-40', btn.color)}>
                 {injectingId && btn.label === '批量注入' ? <RefreshCw className="w-3 h-3 animate-spin" /> : btn.icon}
                 {btn.label}
               </button>
@@ -188,9 +188,9 @@ export default function Phones() {
   const usedSlots = accounts.filter(a => a.assignedPhoneId).length;
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
       {/* 工具栏 */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-[#d0d0d0] bg-[#f0f0f0] shrink-0">
+      <div className="tool-toolbar flex items-center gap-3 px-4 py-2 shrink-0">
         <Smartphone className="w-4 h-4 text-muted-foreground" />
         <span className="text-[12px] font-semibold text-foreground">设备管理</span>
         <span className="text-[10px] text-muted-foreground font-mono">
@@ -198,7 +198,7 @@ export default function Phones() {
         </span>
         <button onClick={async () => { if (!settings.apiKey) return; setLoading(true); await loadCloudPhones(settings.apiKey, settings.apiRegion); setLoading(false); }}
           disabled={loading || !settings.apiKey}
-          className="ml-auto flex items-center gap-1 h-6 px-2.5 rounded border border-[#c8c8c8] bg-white text-[10px] text-foreground/70 hover:border-primary hover:text-primary disabled:opacity-40 transition-colors shadow-btn">
+          className="tool-btn ml-auto h-6 px-2.5 text-[10px] disabled:opacity-40">
           <RefreshCw className={cn('w-3 h-3', loading && 'animate-spin')} />刷新
         </button>
       </div>

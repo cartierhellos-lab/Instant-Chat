@@ -64,13 +64,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center w-screen h-screen bg-[#f0f0f0]">
+    <div className="flex items-center justify-center w-screen h-screen px-4">
       {/* 居中卡片 — macOS 偏好设置风格 */}
-      <div className="w-[380px] bg-white border border-[#d0d0d0] rounded-xl shadow-float overflow-hidden">
+      <div className="tool-window w-[400px] rounded-[18px] overflow-hidden">
 
         {/* 标题栏 */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-[#f5f5f5] border-b border-[#d8d8d8]">
-          <div className="w-4 h-4 rounded-[4px] bg-primary flex items-center justify-center">
+        <div className="tool-header flex items-center gap-2 px-4 py-3">
+          <div className="w-4 h-4 rounded-[4px] bg-primary flex items-center justify-center shadow-btn">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.93 12 19.79 19.79 0 0 1 1.9 3.38 2 2 0 0 1 3.68 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.65a16 16 0 0 0 6.44 6.44l1.02-1.01a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
             </svg>
@@ -80,7 +80,7 @@ export default function LoginPage() {
         </div>
 
         {/* 表单区 */}
-        <div className="px-6 py-6 space-y-4">
+        <div className="px-6 py-6 space-y-4 bg-[linear-gradient(180deg,#ffffff_0%,#fafbfd_100%)]">
           {/* 提示文字 */}
           <p className="text-[11px] text-muted-foreground leading-relaxed">
             输入 CartierMiller API Key 以管理员身份进入，或输入子账号密钥访问分配的资源。
@@ -98,7 +98,7 @@ export default function LoginPage() {
                 placeholder="粘贴密钥…"
                 autoComplete="off"
                 autoFocus
-                className="w-full h-8 px-2.5 pr-8 rounded border border-[#c8c8c8] bg-white text-[12px] text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-mono"
+                className="tool-input h-8 px-2.5 pr-8 text-[12px] font-mono placeholder:text-muted-foreground/50"
                 style={{ borderColor: error ? '#ef4444' : undefined }}
               />
               <button
@@ -117,12 +117,12 @@ export default function LoginPage() {
         </div>
 
         {/* 底部操作栏 */}
-        <div className="flex items-center justify-between px-6 py-3 bg-[#f5f5f5] border-t border-[#d8d8d8]">
+        <div className="tool-toolbar flex items-center justify-between px-6 py-3">
           <span className="text-[10px] text-muted-foreground/60 font-mono tracking-wider">CARTIER MILLER</span>
           <button
             onClick={handleLogin}
             disabled={loading || !key.trim()}
-            className="flex items-center gap-1.5 h-7 px-4 rounded bg-primary text-white text-[11px] font-semibold shadow-btn hover:opacity-90 active:opacity-80 disabled:opacity-40 transition-opacity"
+            className="tool-btn tool-btn-primary h-7 px-4 text-[11px] font-semibold disabled:opacity-40"
           >
             {loading
               ? <><Loader2 size={11} className="animate-spin" />验证中…</>

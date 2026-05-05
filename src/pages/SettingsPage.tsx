@@ -40,13 +40,6 @@ function AdminPanel() {
     }
   };
 
-  const openAssign = (sub: SubAccount, mode: 'phones' | 'accounts') => {
-    setSelectedSub(sub);
-    setAssignMode(mode);
-    setPhoneSelections(sub.assignedPhoneIds);
-    setAccountSelections(sub.assignedAccountIds);
-  };
-
   const handleSaveAssign = () => {
     if (!selectedSub) return;
     if (assignMode === 'phones') assignPhones(selectedSub.id, phoneSelections);
@@ -61,18 +54,18 @@ function AdminPanel() {
   return (
     <div className="flex flex-1 overflow-hidden min-h-0">
       {/* Left: create + list */}
-      <div className="w-72 flex flex-col border-r border-border bg-white overflow-y-auto shrink-0">
+      <div className="tool-sidebar w-72 flex flex-col overflow-y-auto shrink-0">
         {/* Create form */}
-        <div className="p-4 border-b border-border">
+        <div className="p-4 border-b border-[#dbe2e9]">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">新建子账号</p>
           <input
-            className="w-full border border-input rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+            className="tool-input h-8 px-3 text-sm mb-2"
             placeholder="子账号名称（必填）"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
           />
           <input
-            className="w-full border border-input rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+            className="tool-input h-8 px-3 text-sm mb-3"
             placeholder="备注（选填）"
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
@@ -80,7 +73,7 @@ function AdminPanel() {
           <button
             onClick={handleCreate}
             disabled={!newName.trim()}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-40 transition"
+            className="tool-btn tool-btn-primary w-full justify-center py-2 text-sm font-medium disabled:opacity-40"
           >
             <Plus size={15} /> 生成密钥
           </button>
@@ -98,7 +91,7 @@ function AdminPanel() {
               <div
                 key={sub.id}
                 className={cn(
-                  'p-3 border-b border-border cursor-pointer hover:bg-slate-50 transition',
+                  'p-3 border-b border-[#dbe2e9] cursor-pointer hover:bg-white/70 transition',
                   selectedSub?.id === sub.id && 'bg-primary/5'
                 )}
                 onClick={() => setSelectedSub(sub)}
@@ -107,7 +100,7 @@ function AdminPanel() {
                   <span className="text-sm font-medium text-foreground">{sub.name}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteSubAccount(sub.id); if (selectedSub?.id === sub.id) setSelectedSub(null); }}
-                    className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition"
+                    className="p-1 rounded hover:bg-white text-muted-foreground hover:text-destructive transition"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -119,14 +112,14 @@ function AdminPanel() {
                   </code>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleCopy(sub.key, sub.id + '-key'); }}
-                    className="p-1 rounded hover:bg-muted transition"
+                    className="p-1 rounded hover:bg-white transition"
                     title="复制密钥"
                   >
                     {copiedId === sub.id + '-key' ? <Check size={11} className="text-green-400" /> : <Copy size={11} className="text-muted-foreground" />}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleRegenKey(sub); }}
-                    className="p-1 rounded hover:bg-muted transition"
+                    className="p-1 rounded hover:bg-white transition"
                     title="重置密钥"
                   >
                     <RefreshCw size={11} className="text-muted-foreground" />
@@ -153,7 +146,7 @@ function AdminPanel() {
         ) : (
           <div className="space-y-4 max-w-lg">
             <div className="flex items-center gap-2 pb-3 border-b border-border">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)] flex items-center justify-center">
                 <User size={15} className="text-primary" />
               </div>
               <div>
@@ -169,10 +162,10 @@ function AdminPanel() {
                   key={mode}
                   onClick={() => setAssignMode(mode)}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition border',
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-medium transition border',
                     assignMode === mode
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border text-muted-foreground hover:bg-muted'
+                      ? 'bg-[linear-gradient(180deg,#3683ec_0%,#276bcc_100%)] text-primary-foreground border-transparent'
+                      : 'border-[#dbe2e9] text-muted-foreground hover:bg-white/70'
                   )}
                 >
                   {mode === 'phones' ? <Smartphone size={12} /> : <Users size={12} />}
@@ -189,7 +182,7 @@ function AdminPanel() {
                 ) : cloudPhones.map((phone) => {
                   const checked = phoneSelections.includes(phone.id);
                   return (
-                    <label key={phone.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition">
+                    <label key={phone.id} className="flex items-center gap-2 px-3 py-2 rounded-[7px] border border-[#dbe2e9] hover:bg-white/70 cursor-pointer transition">
                       <input
                         type="checkbox"
                         checked={checked}
@@ -213,7 +206,7 @@ function AdminPanel() {
                 ) : accounts.slice(0, 100).map((acc) => {
                   const checked = accountSelections.includes(acc.id);
                   return (
-                    <label key={acc.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition">
+                    <label key={acc.id} className="flex items-center gap-2 px-3 py-2 rounded-[7px] border border-[#dbe2e9] hover:bg-white/70 cursor-pointer transition">
                       <input
                         type="checkbox"
                         checked={checked}
@@ -230,7 +223,7 @@ function AdminPanel() {
 
             <button
               onClick={handleSaveAssign}
-              className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition flex items-center justify-center gap-2"
+              className="tool-btn tool-btn-primary w-full justify-center py-2 text-sm font-medium"
             >
               <Check size={14} /> 保存分配
             </button>
@@ -344,14 +337,14 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
       {/* 工具栏 */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-[#d0d0d0] bg-[#f0f0f0] shrink-0">
+      <div className="tool-toolbar flex items-center gap-2 px-4 py-2 shrink-0">
         <Settings className="w-4 h-4 text-muted-foreground" />
         <span className="text-[12px] font-semibold text-foreground">设置</span>
         <div className="flex items-center gap-0.5 ml-3">
           {(['general', ...(isAdmin ? ['admin'] : [])] as ('general' | 'admin')[]).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={cn('flex items-center gap-1 h-6 px-2.5 rounded text-[10px] font-medium transition-colors',
-                activeTab === tab ? 'bg-white border border-[#c8c8c8] text-foreground shadow-btn' : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
+              className={cn('tool-tab h-6 px-2.5 text-[10px] font-medium transition-colors',
+                activeTab === tab ? 'tool-tab-active text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-white/70'
               )}>
               {tab === 'admin' && <ShieldCheck size={10} />}
               {tab === 'general' ? '常规设置' : '管理员'}
@@ -363,8 +356,8 @@ export default function SettingsPage() {
       {activeTab === 'general' ? (
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 max-w-2xl">
           {/* 连接状态 */}
-          <div className={cn('flex items-center gap-2.5 px-3 py-2 rounded border text-[11px]',
-            lastError ? 'border-red-300 bg-red-50 text-red-600' : cloudNumbers.length > 0 ? 'border-green-300 bg-green-50 text-green-700' : 'border-[#ddd] bg-[#f8f8f8] text-muted-foreground'
+          <div className={cn('flex items-center gap-2.5 px-3 py-2 rounded-[8px] border text-[11px]',
+            lastError ? 'border-red-300 bg-red-50 text-red-600' : cloudNumbers.length > 0 ? 'border-green-300 bg-green-50 text-green-700' : 'border-[#dbe2e9] bg-white text-muted-foreground'
           )}>
             {lastError ? <WifiOff className="w-3.5 h-3.5 shrink-0" /> : cloudNumbers.length > 0 ? <Wifi className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
             <span className="font-medium">{lastError ? '连接失败' : cloudNumbers.length > 0 ? `已连接 · ${cloudNumbers.length} 个号码` : '未连接'}</span>
@@ -375,18 +368,18 @@ export default function SettingsPage() {
           </div>
 
           {/* API Key */}
-          <section className="border border-[#d8d8d8] rounded bg-white p-4 space-y-3">
+          <section className="tool-panel p-4 space-y-3">
             <div className="flex items-center gap-1.5 pb-2 border-b border-[#ebebeb]">
               <Key className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-[11px] font-semibold">API 密钥</span>
             </div>
             <div className="space-y-1">
               <label className="block text-[10px] font-medium text-muted-foreground">CartierMiller API Key</label>
               <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="粘贴 API Key…"
-                className="w-full h-7 px-2.5 rounded border border-[#c8c8c8] bg-white text-[11px] font-mono text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition" />
+                className="tool-input h-7 px-2.5 text-[11px] font-mono placeholder:text-muted-foreground/40" />
             </div>
             <div className="flex items-center gap-2">
               <button onClick={handleTest} disabled={!apiKey || testing}
-                className="flex items-center gap-1 h-6 px-3 rounded border border-[#c8c8c8] bg-[#f5f5f5] text-[10px] text-foreground/70 hover:border-primary hover:text-primary disabled:opacity-40 transition-colors shadow-btn">
+                className="tool-btn h-6 px-3 text-[10px] disabled:opacity-40">
                 {testing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wifi className="w-3 h-3" />}测试连接
               </button>
               {testResult !== 'idle' && (
@@ -398,7 +391,7 @@ export default function SettingsPage() {
           </section>
 
           {/* 接口配置 */}
-          <section className="border border-[#d8d8d8] rounded bg-white p-4 space-y-3">
+          <section className="tool-panel p-4 space-y-3">
             <div className="flex items-center gap-1.5 pb-2 border-b border-[#ebebeb]">
               <Globe className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-[11px] font-semibold">接口配置</span>
             </div>
@@ -407,8 +400,8 @@ export default function SettingsPage() {
               <div className="flex gap-1.5">
                 {(['cn', 'global'] as const).map(r => (
                   <button key={r} onClick={() => setRegion(r)}
-                    className={cn('flex-1 h-8 px-3 rounded border text-[10px] font-medium transition-colors',
-                      region === r ? 'border-primary bg-primary/5 text-primary' : 'border-[#c8c8c8] bg-[#f5f5f5] text-foreground/70 hover:border-primary hover:text-primary'
+                    className={cn('flex-1 h-8 px-3 rounded-[7px] border text-[10px] font-medium transition-colors',
+                      region === r ? 'border-primary bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)] text-primary' : 'border-[#c8c8c8] bg-white text-foreground/70 hover:border-primary hover:text-primary'
                     )}>
                     {r === 'cn' ? '🇨🇳 中国大陆' : '🌍 国际节点'}
                     <div className="text-[9px] font-mono opacity-60 mt-0.5">{r === 'cn' ? 'api.carriermiller.cn' : 'api.carriermiller.net'}</div>
@@ -425,15 +418,15 @@ export default function SettingsPage() {
           </section>
 
           {/* 翻译引擎 */}
-          <section className="border border-[#d8d8d8] rounded bg-white p-4 space-y-3">
+          <section className="tool-panel p-4 space-y-3">
             <div className="flex items-center gap-1.5 pb-2 border-b border-[#ebebeb]">
               <Languages className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-[11px] font-semibold">翻译引擎</span>
             </div>
             <div className="flex gap-1.5">
               {(['mymemory', 'ollama'] as const).map(e => (
                 <button key={e} onClick={() => setTranslateEngine(e)}
-                  className={cn('flex-1 h-7 px-3 rounded border text-[10px] font-medium transition-colors',
-                    translateEngine === e ? 'border-primary bg-primary/5 text-primary' : 'border-[#c8c8c8] bg-[#f5f5f5] text-foreground/70 hover:border-primary hover:text-primary'
+                  className={cn('flex-1 h-7 px-3 rounded-[7px] border text-[10px] font-medium transition-colors',
+                    translateEngine === e ? 'border-primary bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)] text-primary' : 'border-[#c8c8c8] bg-white text-foreground/70 hover:border-primary hover:text-primary'
                   )}>
                   {e === 'mymemory' ? '🌐 MyMemory（在线）' : '⚡ Ollama（本地）'}
                 </button>
@@ -444,16 +437,16 @@ export default function SettingsPage() {
                 <div>
                   <label className="block text-[10px] font-medium text-muted-foreground mb-1">Ollama 地址</label>
                   <input value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} placeholder="http://localhost:11434"
-                    className="w-full h-7 px-2.5 rounded border border-[#c8c8c8] bg-white text-[11px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition" />
+                    className="tool-input h-7 px-2.5 text-[11px] font-mono" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-medium text-muted-foreground mb-1">翻译模型</label>
                   <div className="flex gap-1.5">
                     <input value={ollamaModel} onChange={e => setOllamaModel(e.target.value)} placeholder="qwen2:7b"
-                      className="flex-1 h-7 px-2.5 rounded border border-[#c8c8c8] bg-white text-[11px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition" />
+                      className="tool-input h-7 px-2.5 text-[11px] font-mono" />
                     {ollamaModels.length > 0 && (
                       <select value={ollamaModel} onChange={e => setOllamaModel(e.target.value)}
-                        className="h-7 px-1.5 rounded border border-[#c8c8c8] bg-white text-[10px] outline-none">
+                        className="tool-input h-7 px-1.5 text-[10px]">
                         {ollamaModels.map(m => <option key={m} value={m}>{m}</option>)}
                       </select>
                     )}
@@ -467,7 +460,7 @@ export default function SettingsPage() {
                     setOllamaTestResult(r.ok ? 'ok' : 'fail');
                     setOllamaTestMsg(r.ok ? `连接成功，${r.models.length} 个模型` : r.error ?? '连接失败');
                     if (r.ok) setOllamaModels(r.models);
-                  }} className="flex items-center gap-1 h-6 px-2.5 rounded border border-[#c8c8c8] bg-[#f5f5f5] text-[10px] text-foreground/70 hover:border-primary hover:text-primary transition-colors shadow-btn">
+                  }} className="tool-btn h-6 px-2.5 text-[10px]">
                     <Wifi className="w-3 h-3" />测试 Ollama
                   </button>
                   {ollamaTestResult !== 'idle' && (
@@ -483,28 +476,28 @@ export default function SettingsPage() {
           </section>
 
           {/* Supabase */}
-          <section className="border border-[#d8d8d8] rounded bg-white p-4 space-y-3">
+          <section className="tool-panel p-4 space-y-3">
             <div className="flex items-center gap-1.5 pb-2 border-b border-[#ebebeb]">
               <Database className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-[11px] font-semibold">Supabase 数据库</span>
             </div>
             <div className="space-y-1">
               <label className="block text-[10px] font-medium text-muted-foreground">Project URL</label>
               <input type="text" value={sbUrl} onChange={e => setSbUrl(e.target.value)} placeholder="https://xxxx.supabase.co"
-                className="w-full h-7 px-2.5 rounded border border-[#c8c8c8] bg-white text-[11px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition" />
+                className="tool-input h-7 px-2.5 text-[11px] font-mono" />
             </div>
             <div className="space-y-1">
               <label className="block text-[10px] font-medium text-muted-foreground">Anon / Public Key</label>
               <input type="password" value={sbKey} onChange={e => setSbKey(e.target.value)} placeholder="eyJhbGciOi…"
-                className="w-full h-7 px-2.5 rounded border border-[#c8c8c8] bg-white text-[11px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition" />
+                className="tool-input h-7 px-2.5 text-[11px] font-mono" />
             </div>
             <div className="flex items-center gap-2">
               <button onClick={handleSbTest} disabled={!sbUrl.trim() || !sbKey.trim() || sbTesting}
-                className="flex items-center gap-1 h-6 px-2.5 rounded border border-[#c8c8c8] bg-[#f5f5f5] text-[10px] text-foreground/70 hover:border-primary hover:text-primary disabled:opacity-40 transition-colors shadow-btn">
+                className="tool-btn h-6 px-2.5 text-[10px] disabled:opacity-40">
                 {sbTesting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wifi className="w-3 h-3" />}测试
               </button>
               <button onClick={handleSbSave} disabled={!sbUrl.trim() || !sbKey.trim()}
-                className={cn('flex items-center gap-1 h-6 px-2.5 rounded text-[10px] font-medium transition-colors shadow-btn disabled:opacity-40',
-                  sbSaved ? 'border border-green-300 bg-green-50 text-green-700' : 'bg-primary text-white hover:opacity-90'
+                className={cn('tool-btn h-6 px-2.5 text-[10px] font-medium disabled:opacity-40',
+                  sbSaved ? 'border border-green-300 bg-green-50 text-green-700' : 'tool-btn-primary'
                 )}>
                 {sbSaved ? <><Check className="w-3 h-3" />已保存</> : <><Database className="w-3 h-3" />保存配置</>}
               </button>
@@ -519,8 +512,8 @@ export default function SettingsPage() {
           {/* 保存 + 身份 + 退出 */}
           <div className="flex items-center gap-3 pb-4">
             <button onClick={handleSave}
-              className={cn('flex items-center gap-1.5 h-7 px-4 rounded text-[11px] font-semibold transition-colors shadow-btn',
-                saved ? 'border border-green-300 bg-green-50 text-green-700' : 'bg-primary text-white hover:opacity-90'
+              className={cn('tool-btn h-7 px-4 text-[11px] font-semibold',
+                saved ? 'border border-green-300 bg-green-50 text-green-700' : 'tool-btn-primary'
               )}>
               {saved ? <><Check className="w-3.5 h-3.5" />已保存</> : <><Settings className="w-3.5 h-3.5" />保存并应用</>}
             </button>
@@ -528,7 +521,7 @@ export default function SettingsPage() {
               {currentRole === 'admin' ? '🔑 管理员' : '👤 子账号'} · {settings.apiKey ? maskApiKey(settings.apiKey) : '未配置'}
             </span>
             <button onClick={() => { stopPolling(); updateSettings({ accessKey: undefined }); navigate(ROUTE_PATHS.LOGIN, { replace: true }); }}
-              className="flex items-center gap-1 h-6 px-2 rounded border border-red-300 bg-red-50 text-red-600 text-[10px] hover:bg-red-100 transition-colors">
+              className="tool-btn h-6 px-2 text-[10px] border-red-300 bg-red-50 text-red-600 hover:bg-red-100">
               <LogOut className="w-3 h-3" />退出
             </button>
           </div>

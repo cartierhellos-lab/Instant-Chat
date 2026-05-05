@@ -45,14 +45,14 @@ export default function Layout() {
   ];
 
   return (
-    <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
+    <div className="flex flex-col h-screen w-full overflow-hidden bg-transparent">
 
       {/* ── Toolbar（macOS 标题栏风格）──────────────────────────────── */}
-      <header className="flex items-center h-10 px-3 gap-1 bg-[#ebebeb] border-b border-[#d0d0d0] shrink-0 select-none">
+      <header className="tool-header flex items-center h-10 px-3 gap-1 shrink-0 select-none">
 
         {/* App icon + name */}
         <div className="flex items-center gap-1.5 mr-3">
-          <div className="w-5 h-5 rounded-[5px] bg-primary flex items-center justify-center">
+          <div className="w-5 h-5 rounded-[5px] bg-primary flex items-center justify-center shadow-btn">
             <Phone className="w-3 h-3 text-white" />
           </div>
           <span className="text-[12px] font-semibold text-foreground/80 tracking-tight">Instant Chat</span>
@@ -70,10 +70,10 @@ export default function Layout() {
               end={path === ROUTE_PATHS.HOME}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-1.5 px-2.5 h-6 rounded text-[11px] font-medium transition-all duration-100',
+                  'tool-tab h-6 transition-all duration-100',
                   isActive
-                    ? 'bg-white text-foreground shadow-btn border border-[#c8c8c8]'
-                    : 'text-foreground/60 hover:text-foreground hover:bg-black/5'
+                    ? 'tool-tab-active text-foreground'
+                    : 'text-foreground/60 hover:text-foreground hover:bg-white/60'
                 )
               }
             >
@@ -86,9 +86,9 @@ export default function Layout() {
         {/* 右侧状态区 */}
         <div className="flex items-center gap-2 ml-auto">
           {/* 号码计数 */}
-          <span className="text-[10px] text-foreground/40 font-mono">
-            {cloudNumbers.length} 个号码
-          </span>
+            <span className="text-[10px] text-foreground/45 font-mono">
+              {cloudNumbers.length} 个号码
+            </span>
 
           <div className="toolbar-divider" />
 
@@ -107,10 +107,10 @@ export default function Layout() {
             </button>
           )}
           {settings.apiKey && !lastError && !isLoading && (
-            <span className="flex items-center gap-1 text-[10px] text-green-600">
-              <Wifi className="w-3 h-3" />
-              <span>已连接</span>
-            </span>
+              <span className="flex items-center gap-1 text-[10px] text-green-600">
+                <Wifi className="w-3 h-3" />
+                <span>已连接</span>
+              </span>
           )}
 
           {/* Admin badge */}

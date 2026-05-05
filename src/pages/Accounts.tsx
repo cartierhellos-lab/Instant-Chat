@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Upload, Users, Trash2, RefreshCw, Search, Download, CheckSquare, Square, Zap, AlertCircle, Check, Terminal } from 'lucide-react';
 import { useAccountStore, useChatStore, useSettingsStore } from '@/hooks/useStore';
 import { parseTxtAccounts } from '@/api/duoplus';
-import { cn, statusColor, statusLabel, formatTime, DEFAULT_ADB_TEMPLATE } from '@/lib/index';
+import { cn, statusLabel, formatTime, DEFAULT_ADB_TEMPLATE } from '@/lib/index';
 import type { AccountStatus, TextNowAccount } from '@/lib/index';
 
 const STATUS_FILTERS: { label: string; value: AccountStatus | 'all' }[] = [
@@ -37,17 +37,17 @@ function ImportPanel({ onImported }: { onImported: (added: number, dup: number) 
   };
 
   return (
-    <div className="border border-[#d8d8d8] rounded bg-white p-3 space-y-2">
+    <div className="tool-panel p-3 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold text-foreground">批量导入账号</span>
         <button onClick={() => fileRef.current?.click()}
-          className="flex items-center gap-1 h-5 px-2 rounded border border-[#c8c8c8] bg-[#f5f5f5] text-[10px] text-foreground/70 hover:border-primary hover:text-primary transition-colors">
+          className="tool-btn h-5 px-2 text-[10px]">
           <Upload className="w-3 h-3" />选择 TXT
         </button>
         <input ref={fileRef} type="file" accept=".txt" className="hidden" onChange={handleFile} />
       </div>
 
-      <div className="p-2 rounded border border-dashed border-[#d0d0d0] bg-[#fafafa] text-[9px] text-muted-foreground font-mono space-y-0.5">
+      <div className="tool-surface-soft p-2 text-[9px] text-muted-foreground font-mono space-y-0.5">
         <p className="font-semibold text-foreground">5字段格式（每行一个账号）</p>
         <p>手机号 | 用户名 | 密码 | 注册邮箱 | 邮箱密码</p>
         <p className="text-primary/70">+15551234567 | user | Pass@123 | u@gmail.com | gmailP</p>
@@ -55,11 +55,11 @@ function ImportPanel({ onImported }: { onImported: (added: number, dup: number) 
 
       <textarea value={text} onChange={e => setText(e.target.value)}
         placeholder="粘贴账号数据或选择 TXT 文件…" rows={5}
-        className="w-full px-2.5 py-1.5 rounded border border-[#c8c8c8] bg-white text-[10px] font-mono text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition resize-none" />
+        className="tool-textarea px-2.5 py-1.5 text-[10px] font-mono text-foreground placeholder:text-muted-foreground/40" />
 
       <div className="flex items-center gap-2">
         <button onClick={handleParse} disabled={!text.trim()}
-          className="flex items-center gap-1 h-6 px-3 rounded bg-primary text-white text-[10px] font-medium shadow-btn hover:opacity-90 disabled:opacity-40 transition-opacity">
+          className="tool-btn tool-btn-primary h-6 px-3 text-[10px] font-medium disabled:opacity-40">
           <Download className="w-3 h-3" />解析并导入
         </button>
         {result && (
@@ -85,7 +85,7 @@ function AdbTemplatePanel() {
   };
 
   return (
-    <div className="border border-[#d8d8d8] rounded bg-white p-3 space-y-2">
+    <div className="tool-panel p-3 space-y-2">
       <div className="flex items-center gap-1.5">
         <Terminal className="w-3 h-3 text-muted-foreground" />
         <span className="text-[11px] font-semibold text-foreground">ADB 命令模板</span>
@@ -94,10 +94,10 @@ function AdbTemplatePanel() {
         变量：<code className="text-primary">{'{phone}'}</code> <code className="text-primary">{'{username}'}</code> <code className="text-primary">{'{password}'}</code> <code className="text-primary">{'{email}'}</code> <code className="text-primary">{'{emailPassword}'}</code>
       </p>
       <textarea value={tpl} onChange={e => setTpl(e.target.value)} rows={3}
-        className="w-full px-2.5 py-1.5 rounded border border-[#c8c8c8] bg-[#fafafa] text-[10px] font-mono text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition resize-none" />
+        className="tool-textarea px-2.5 py-1.5 text-[10px] font-mono text-foreground" />
       <div className="flex items-center gap-2">
         <button onClick={handleSave}
-          className="flex items-center gap-1 h-5 px-2 rounded bg-primary text-white text-[9px] font-medium shadow-btn hover:opacity-90 transition-opacity">
+          className="tool-btn tool-btn-primary h-5 px-2 text-[9px] font-medium">
           {saved ? <><Check className="w-2.5 h-2.5" />已保存</> : '保存模板'}
         </button>
         <button onClick={() => setTpl(DEFAULT_ADB_TEMPLATE)} className="text-[9px] text-primary hover:underline">恢复默认</button>
@@ -160,9 +160,9 @@ export default function Accounts() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
       {/* 工具栏 */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-[#d0d0d0] bg-[#f0f0f0] shrink-0">
+      <div className="tool-toolbar flex items-center gap-3 px-4 py-2 shrink-0">
         <Users className="w-4 h-4 text-muted-foreground" />
         <span className="text-[12px] font-semibold text-foreground">资源管理</span>
         <span className="text-[10px] text-muted-foreground font-mono">
@@ -178,7 +178,7 @@ export default function Accounts() {
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* 左边栏：导入+统计+ADB */}
-        <div className="w-64 shrink-0 h-full overflow-y-auto border-r border-[#d0d0d0] px-3 py-3 space-y-3 bg-[#f7f7f7]">
+        <div className="tool-sidebar w-64 shrink-0 h-full overflow-y-auto px-3 py-3 space-y-3">
           <ImportPanel onImported={(a, d) => setImportMsg(`导入 ${a} 个，重复 ${d} 个`)} />
           {importMsg && (
             <div className="flex items-center gap-1.5 text-[10px] text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1">
@@ -191,12 +191,12 @@ export default function Accounts() {
               { label: '已分配', count: stats.assigned, color: 'text-blue-600' },
               { label: '已封禁', count: stats.banned, color: 'text-red-500' },
             ].map(({ label, count, color }) => (
-              <div key={label} className="flex items-center justify-between px-2 py-1 rounded border border-[#e0e0e0] bg-white text-[10px]">
+              <div key={label} className="flex items-center justify-between px-2 py-1 rounded border border-[#dbe2e9] bg-white text-[10px]">
                 <span className="text-muted-foreground">{label}</span>
                 <span className={cn('font-bold font-mono', color)}>{count}</span>
               </div>
             ))}
-            <div className="px-2 py-1 rounded border border-[#e0e0e0] bg-white text-[9px] text-muted-foreground">
+            <div className="px-2 py-1 rounded border border-[#dbe2e9] bg-white text-[9px] text-muted-foreground">
               {cloudPhones.length} 台设备 · 最大 {cloudPhones.length * 10} 个账号
             </div>
           </div>
@@ -206,17 +206,17 @@ export default function Accounts() {
         {/* 右侧：账号列表 */}
         <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
           {/* 搜索+筛选 */}
-          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[#d8d8d8] bg-[#f5f5f5] shrink-0">
+          <div className="tool-toolbar flex items-center gap-2 px-3 py-1.5 shrink-0">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/60" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜索…"
-                className="h-6 pl-6 pr-2 w-40 text-[10px] rounded border border-[#c8c8c8] bg-white outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition placeholder:text-muted-foreground/40" />
+                className="tool-input h-6 pl-6 pr-2 w-40 text-[10px] placeholder:text-muted-foreground/40" />
             </div>
             <div className="flex gap-0.5">
               {STATUS_FILTERS.map(({ label, value }) => (
                 <button key={value} onClick={() => setFilter(value)}
-                  className={cn('h-6 px-2 rounded text-[10px] font-medium transition-colors',
-                    filter === value ? 'bg-primary text-white' : 'bg-white border border-[#c8c8c8] text-foreground/60 hover:border-primary hover:text-primary'
+                  className={cn('h-6 px-2 rounded-[6px] text-[10px] font-medium transition-colors border',
+                    filter === value ? 'bg-[linear-gradient(180deg,#3683ec_0%,#276bcc_100%)] text-white border-transparent' : 'bg-white border-[#c8c8c8] text-foreground/60 hover:border-primary hover:text-primary'
                   )}>
                   {label}
                 </button>
@@ -235,7 +235,7 @@ export default function Accounts() {
               </div>
             ) : (
               <table className="w-full text-[11px] border-collapse">
-                <thead className="sticky top-0 bg-[#f0f0f0] border-b border-[#d0d0d0] z-10">
+                <thead className="sticky top-0 bg-[linear-gradient(180deg,#f5f7fa_0%,#e9edf2_100%)] border-b border-[#d0d0d0] z-10">
                   <tr>
                     <th className="px-2 py-1.5 text-left w-7">
                       <button onClick={toggleAll}>
@@ -253,7 +253,7 @@ export default function Accounts() {
                   {filtered.map(acc => {
                     const phone = cloudPhones.find(p => p.id === acc.assignedPhoneId);
                     return (
-                      <tr key={acc.id} className={cn('border-b border-[#ebebeb] hover:bg-[#f8f8f8] transition-colors', selected.has(acc.id) && 'bg-primary/5')}>
+                      <tr key={acc.id} className={cn('border-b border-[#ebebeb] hover:bg-white/70 transition-colors', selected.has(acc.id) && 'bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)]')}>
                         <td className="px-2 py-1.5">
                           <button onClick={() => toggleSelect(acc.id)}>
                             {selected.has(acc.id) ? <CheckSquare className="w-3.5 h-3.5 text-primary" /> : <Square className="w-3.5 h-3.5 text-muted-foreground/40" />}
@@ -280,16 +280,16 @@ export default function Accounts() {
                           <div className="flex items-center gap-1">
                             {acc.assignedPhoneId && (
                               <button onClick={() => handleInject(acc)} disabled={injectingId === acc.id}
-                                className="flex items-center gap-0.5 h-5 px-1.5 rounded border border-[#c8c8c8] bg-[#f5f5f5] text-[9px] text-foreground/70 hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">
+                                className="tool-btn h-5 px-1.5 text-[9px] disabled:opacity-40">
                                 {injectingId === acc.id ? <RefreshCw className="w-2.5 h-2.5 animate-spin" /> : <Zap className="w-2.5 h-2.5" />}注入
                               </button>
                             )}
                             {acc.status !== 'banned' ? (
                               <button onClick={() => markBanned(acc.id)}
-                                className="h-5 px-1.5 rounded border border-[#e0e0e0] text-[9px] text-muted-foreground hover:border-red-400 hover:text-red-500 transition-colors">封禁</button>
+                                className="h-5 px-1.5 rounded-[6px] border border-[#d9dfe6] text-[9px] text-muted-foreground hover:border-red-400 hover:text-red-500 transition-colors">封禁</button>
                             ) : (
                               <button onClick={() => updateAccount(acc.id, { status: 'available', bannedAt: undefined })}
-                                className="h-5 px-1.5 rounded border border-[#e0e0e0] text-[9px] text-muted-foreground hover:border-green-500 hover:text-green-600 transition-colors">恢复</button>
+                                className="h-5 px-1.5 rounded-[6px] border border-[#d9dfe6] text-[9px] text-muted-foreground hover:border-green-500 hover:text-green-600 transition-colors">恢复</button>
                             )}
                           </div>
                         </td>

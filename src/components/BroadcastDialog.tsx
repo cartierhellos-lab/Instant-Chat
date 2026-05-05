@@ -1,10 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
-import { X, Send, Upload, Image, Users, Clock, Plus, Trash2, FileText, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { X, Send, Upload, Image, Clock, Plus, FileText, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSettingsStore, useChatStore, useAccountStore, useTaskStore } from '@/hooks/useStore';
 import { cn, generateId, randomQueueInterval, QUEUE_INTERVAL_MIN, QUEUE_INTERVAL_MAX } from '@/lib/index';
-import type { BroadcastTask, QueueItem } from '@/lib/index';
-import { executeAdbCommand } from '@/api/duoplus';
+import type { QueueItem } from '@/lib/index';
 
 interface Props {
   open: boolean;
@@ -210,10 +209,10 @@ export default function BroadcastDialog({ open, onClose }: Props) {
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+          className="tool-window rounded-[18px] w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
         >
           {/* Header */}
-          <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+          <div className="tool-header flex items-center gap-3 px-6 py-4">
             <Send size={18} className="text-primary" />
             <span className="font-semibold text-foreground">创建群发任务</span>
             <div className="ml-4 flex gap-1">
@@ -223,12 +222,12 @@ export default function BroadcastDialog({ open, onClose }: Props) {
             </div>
             <div className="ml-auto flex items-center gap-3">
               {/* Mode toggle */}
-              <div className="flex bg-slate-100 rounded-lg p-0.5 text-xs">
+              <div className="tool-tabs flex text-xs">
                 {(['cloud_number', 'textnow'] as const).map((m) => (
                   <button
                     key={m}
                     onClick={() => !running && setMode(m)}
-                    className={cn('px-3 py-1.5 rounded-md font-medium transition', mode === m ? 'bg-white shadow text-foreground' : 'text-muted-foreground')}
+                    className={cn('tool-tab px-3 py-1.5 rounded-[6px] font-medium transition', mode === m ? 'tool-tab-active text-foreground' : 'text-muted-foreground')}
                   >
                     {m === 'cloud_number' ? '云号码' : 'TextNow'}
                   </button>
@@ -241,7 +240,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 bg-[linear-gradient(180deg,#ffffff_0%,#fafbfd_100%)]">
             {/* ─── STEP 1: Message ─── */}
             {step === 1 && (
               <div className="space-y-5">
@@ -252,7 +251,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                     onChange={(e) => setMessage(e.target.value)}
                     rows={5}
                     placeholder="输入要群发的消息内容..."
-                    className="w-full border border-input rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+                    className="tool-textarea px-4 py-3 text-sm"
                   />
                   <p className="text-xs text-muted-foreground mt-1">{message.length} 字符</p>
                 </div>
@@ -263,12 +262,12 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                   <div
                     onDrop={handleImageDrop}
                     onDragOver={(e) => e.preventDefault()}
-                    className="border-2 border-dashed border-border rounded-xl p-4 text-center hover:border-primary/50 transition cursor-pointer"
+                    className="border-2 border-dashed border-[#d2d9e1] rounded-[12px] p-4 text-center hover:border-primary/50 transition cursor-pointer bg-[linear-gradient(180deg,#fcfdff_0%,#f5f8fb_100%)]"
                     onClick={() => imageInputRef.current?.click()}
                   >
                     {imagePreview ? (
                       <div className="relative inline-block">
-                        <img src={imagePreview} alt="preview" className="max-h-32 rounded-lg object-contain mx-auto" />
+                        <img src={imagePreview} alt="preview" className="max-h-32 rounded-[10px] object-contain mx-auto" />
                         <button
                           onClick={(e) => { e.stopPropagation(); setImagePreview(''); setImageUrl(''); }}
                           className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-0.5"
@@ -294,7 +293,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                   {/* Or input URL directly */}
                   {!imagePreview && (
                     <input
-                      className="mt-2 w-full border border-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+                      className="tool-input mt-2 h-8 px-3 text-sm"
                       placeholder="或输入图片 URL"
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
@@ -329,18 +328,18 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                     onChange={(e) => setContactRaw(e.target.value)}
                     rows={4}
                     placeholder={`每行一个号码，例如：\n+12135551234\n+13105559876\n\n也支持逗号分隔`}
-                    className="w-full border border-input rounded-xl px-4 py-3 text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+                    className="tool-textarea px-4 py-3 text-sm font-mono"
                   />
 
                   <div className="flex items-center gap-3 mt-2">
                     <button
                       onClick={handleParseContacts}
-                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition"
+                      className="tool-btn tool-btn-primary px-4 py-1.5 text-xs font-medium"
                     >
                       <Plus size={13} /> 解析号码
                     </button>
                     {showContactImport && (
-                      <label className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border border-border text-xs text-slate-600 hover:bg-slate-50 cursor-pointer transition">
+                      <label className="tool-btn px-4 py-1.5 text-xs text-slate-600 cursor-pointer">
                         <Upload size={13} /> 上传 TXT/CSV
                         <input type="file" accept=".txt,.csv" className="hidden" onChange={handleContactFile} />
                       </label>
@@ -351,9 +350,9 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                   </div>
 
                   {contacts.length > 0 && (
-                    <div className="mt-3 max-h-28 overflow-y-auto bg-slate-50 rounded-xl p-3 flex flex-wrap gap-1.5">
+                    <div className="mt-3 max-h-28 overflow-y-auto bg-[linear-gradient(180deg,#fbfcfe_0%,#f2f5f8_100%)] rounded-[12px] p-3 flex flex-wrap gap-1.5 border border-[#dbe2e9]">
                       {contacts.slice(0, 50).map((n, i) => (
-                        <span key={i} className="font-mono text-[10px] bg-white border border-border rounded px-1.5 py-0.5 text-slate-700">
+                        <span key={i} className="font-mono text-[10px] bg-white border border-[#dbe2e9] rounded px-1.5 py-0.5 text-slate-700">
                           {n}
                         </span>
                       ))}
@@ -380,8 +379,8 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                             key={cn_.id}
                             onClick={() => toggleSender(cn_.id)}
                             className={cn(
-                              'border rounded-xl p-3 cursor-pointer transition',
-                              sel ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                              'border rounded-[12px] p-3 cursor-pointer transition',
+                              sel ? 'border-primary bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)]' : 'border-[#dbe2e9] hover:border-primary/40 bg-white'
                             )}
                           >
                             <div className="flex items-center gap-2">
@@ -404,8 +403,8 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                               key={phone.id}
                               onClick={() => toggleSender(phone.id)}
                               className={cn(
-                                'border rounded-xl p-3 cursor-pointer transition',
-                                sel ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                                'border rounded-[12px] p-3 cursor-pointer transition',
+                                sel ? 'border-primary bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)]' : 'border-[#dbe2e9] hover:border-primary/40 bg-white'
                               )}
                             >
                               <div className="flex items-center gap-2">
@@ -422,7 +421,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                         <input
                           type="number" min={1} max={50} value={cycleCount}
                           onChange={(e) => setCycleCount(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="w-20 border border-input rounded-lg px-3 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-ring"
+                          className="tool-input w-20 h-8 px-3 text-sm text-center"
                         />
                       </div>
                     </>
@@ -434,7 +433,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
             {/* ─── STEP 3: Queue Preview ─── */}
             {step === 3 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-[12px] px-4 py-3">
                   <Clock size={16} className="text-amber-500 shrink-0" />
                   <div className="text-sm">
                     <span className="font-medium text-amber-700">发送计划</span>
@@ -445,14 +444,14 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                 </div>
 
                 <input
-                  className="w-full border border-input rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+                  className="tool-input w-full h-9 px-4 text-sm"
                   placeholder="任务名称"
                   value={taskName}
                   onChange={(e) => setTaskName(e.target.value)}
                 />
 
                 {running && (
-                  <div className="bg-slate-50 rounded-xl p-3">
+                  <div className="bg-[linear-gradient(180deg,#fbfcfe_0%,#f2f5f8_100%)] rounded-[12px] p-3 border border-[#dbe2e9]">
                     <div className="flex items-center gap-2 mb-2">
                       <Loader2 size={14} className="text-primary animate-spin" />
                       <span className="text-sm text-foreground font-medium">发送中… {sent}/{queue.length}</span>
@@ -467,7 +466,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                 )}
 
                 {/* Queue list */}
-                <div className="max-h-60 overflow-y-auto space-y-1.5 rounded-xl border border-border p-3">
+                <div className="max-h-60 overflow-y-auto space-y-1.5 rounded-[12px] border border-[#dbe2e9] p-3 bg-[linear-gradient(180deg,#ffffff_0%,#fafbfd_100%)]">
                   {(activeTask?.queue ?? queue).map((item, idx) => (
                     <div key={item.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/50 last:border-0">
                       <span className="w-6 text-muted-foreground font-mono text-center shrink-0">{idx + 1}</span>
@@ -493,12 +492,12 @@ export default function BroadcastDialog({ open, onClose }: Props) {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-slate-50">
+          <div className="tool-toolbar flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-2">
               {step > 1 && !running && (
                 <button
                   onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
-                  className="px-4 py-2 rounded-xl border border-border text-sm text-slate-600 hover:bg-white transition"
+                  className="tool-btn px-4 py-2 text-sm text-slate-600"
                 >
                   上一步
                 </button>
@@ -509,7 +508,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                 <button
                   onClick={goToStep2}
                   disabled={!message.trim()}
-                  className="px-6 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-40 transition"
+                  className="tool-btn tool-btn-primary px-6 py-2 text-sm font-medium disabled:opacity-40"
                 >
                   下一步：选择目标 →
                 </button>
@@ -518,7 +517,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                 <button
                   onClick={goToStep3}
                   disabled={contacts.length === 0 || selectedSenders.length === 0}
-                  className="px-6 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-40 transition"
+                  className="tool-btn tool-btn-primary px-6 py-2 text-sm font-medium disabled:opacity-40"
                 >
                   下一步：预览队列 →
                 </button>
@@ -527,7 +526,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                 <button
                   onClick={handleRun}
                   disabled={queue.length === 0}
-                  className="flex items-center gap-2 px-6 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-40 transition"
+                  className="tool-btn tool-btn-primary flex items-center gap-2 px-6 py-2 text-sm font-medium disabled:opacity-40"
                 >
                   <Send size={15} /> 开始群发
                 </button>
@@ -535,7 +534,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
               {step === 3 && running && (
                 <button
                   onClick={handleAbort}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-destructive text-white text-sm font-medium hover:bg-destructive/90 transition"
+                  className="tool-btn flex items-center gap-2 px-5 py-2 text-sm font-medium border-red-300 bg-red-50 text-red-600 hover:bg-red-100"
                 >
                   <AlertCircle size={15} /> 中止
                 </button>

@@ -23,7 +23,7 @@ function ResultRow({ result }: { result: TaskResult }) {
   const cfg = RESULT_STATUS[result.status];
   const Icon = cfg.icon;
   return (
-    <div className="flex items-center gap-2 px-2 py-1 rounded text-[10px] border border-[#ebebeb] bg-white">
+    <div className="flex items-center gap-2 px-2 py-1 rounded text-[10px] border border-[#dfe5eb] bg-white">
       <Icon className={cn('w-3 h-3 shrink-0', cfg.color, result.status === 'running' && 'animate-spin')} />
       <span className="font-mono text-foreground flex-1 truncate">{result.number || result.numberId}</span>
       <span className="font-mono text-muted-foreground truncate max-w-[100px]">→ {result.contactNumber || '—'}</span>
@@ -40,9 +40,9 @@ function TaskCard({ task }: { task: BroadcastTask }) {
   const StatusIcon = cfg.icon;
 
   return (
-    <div className="border border-[#d8d8d8] rounded bg-white overflow-hidden">
+    <div className="tool-panel overflow-hidden">
       {/* 行头 */}
-      <div className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-[#f8f8f8] transition-colors"
+      <div className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-white/70 transition-colors"
         onClick={() => setExpanded(p => !p)}>
         <StatusIcon className={cn('w-3.5 h-3.5 shrink-0', cfg.color, task.status === 'running' && 'animate-spin')} />
         <div className="flex-1 min-w-0">
@@ -92,7 +92,7 @@ function TaskCard({ task }: { task: BroadcastTask }) {
 
       {/* 展开明细 */}
       {expanded && (
-        <div className="px-3 pb-3 pt-1.5 border-t border-[#ebebeb] bg-[#fafafa] space-y-1">
+        <div className="px-3 pb-3 pt-1.5 border-t border-[#ebebeb] bg-[linear-gradient(180deg,#fbfcfe_0%,#f4f7fa_100%)] space-y-1">
           <p className="text-[9px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">发送明细</p>
           {task.results.map((r, i) => <ResultRow key={`${r.numberId}-${i}`} result={r} />)}
         </div>
@@ -107,9 +107,9 @@ export default function Tasks() {
   const done = tasks.filter(t => t.status === 'completed').length;
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
       {/* 工具栏 */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-[#d0d0d0] bg-[#f0f0f0] shrink-0">
+      <div className="tool-toolbar flex items-center gap-3 px-4 py-2 shrink-0">
         <ListTodo className="w-4 h-4 text-muted-foreground" />
         <span className="text-[12px] font-semibold text-foreground">群发任务</span>
         <span className="text-[10px] text-muted-foreground font-mono">
