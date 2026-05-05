@@ -55,7 +55,7 @@ export default function Layout() {
           <div className="w-5 h-5 rounded-[5px] bg-primary flex items-center justify-center shadow-btn">
             <Phone className="w-3 h-3 text-white" />
           </div>
-          <span className="text-[12px] font-semibold text-foreground/80 tracking-tight">Instant Chat</span>
+          <span className="text-[12px] font-semibold text-foreground/80 tracking-tight">Aobesiwei Chat</span>
         </div>
 
         {/* 分割线 */}
