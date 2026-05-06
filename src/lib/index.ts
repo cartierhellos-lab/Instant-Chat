@@ -3,6 +3,7 @@
 // ============================================================
 export const ROUTE_PATHS = {
   HOME: '/',
+  TRANSLATOR: '/translator',
   COMMUNITY: '/community',
   ACCOUNTS: '/accounts',
   PHONES: '/phones',

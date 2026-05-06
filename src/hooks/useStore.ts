@@ -12,6 +12,33 @@ import {
 import { fetchCloudNumbers, fetchSmsList, fetchCloudPhones, executeAdbCommand, writeSmsByPhone } from '@/api/duoplus';
 import type { TextNowRawAccount } from '@/api/duoplus';
 
+export interface TranslatorTemplate {
+  id: string;
+  title: string;
+  source: string;
+}
+
+export interface TranslatorHistoryItem {
+  id: string;
+  sourceText: string;
+  translatedText: string;
+  targetLang: string;
+  engine: 'mymemory' | 'ollama';
+  createdAt: string;
+}
+
+export interface TranslatorClipboardItem {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface TranslatorGlossaryRule {
+  id: string;
+  source: string;
+  target: string;
+}
+
 // ============================================================
 // Settings Store
 // ============================================================
@@ -706,5 +733,145 @@ export const useAdminStore = create<AdminStore>()(
       },
     }),
     { name: 'duoplus-admin' }
+  )
+);
+
+// ============================================================
+// Translator Store
+// ============================================================
+
+const DEFAULT_TRANSLATOR_TEMPLATES: TranslatorTemplate[] = [
+  {
+    id: 'follow-up',
+    title: '二次跟进',
+    source: '你好，刚刚看到你的消息。为了更快帮你处理，我这边先确认一下你的具体需求。',
+  },
+  {
+    id: 'price',
+    title: '报价回复',
+    source: '可以的，我先把当前报价和可选方案发给你，你看完后我们再确认细节。',
+  },
+  {
+    id: 'delay',
+    title: '延迟说明',
+    source: '抱歉让你久等了，我正在核对信息，稍后给你一个准确回复。',
+  },
+  {
+    id: 'close',
+    title: '成交推进',
+    source: '如果你这边确认没有其他问题，我可以现在就帮你安排下一步流程。',
+  },
+];
+
+interface TranslatorStore {
+  templates: TranslatorTemplate[];
+  history: TranslatorHistoryItem[];
+  clipboard: TranslatorClipboardItem[];
+  glossary: TranslatorGlossaryRule[];
+  addTemplate: (title: string, source: string) => void;
+  updateTemplate: (id: string, patch: Partial<TranslatorTemplate>) => void;
+  deleteTemplate: (id: string) => void;
+  addHistory: (item: Omit<TranslatorHistoryItem, 'id' | 'createdAt'>) => void;
+  clearHistory: () => void;
+  addClipboardItem: (text: string) => void;
+  deleteClipboardItem: (id: string) => void;
+  addGlossaryRule: (source: string, target: string) => void;
+  deleteGlossaryRule: (id: string) => void;
+}
+
+export const useTranslatorStore = create<TranslatorStore>()(
+  persist(
+    (set) => ({
+      templates: DEFAULT_TRANSLATOR_TEMPLATES,
+      history: [],
+      clipboard: [],
+      glossary: [],
+
+      addTemplate: (title, source) =>
+        set((state) => ({
+          templates: [
+            {
+              id: generateId(),
+              title: title.trim() || '未命名模板',
+              source: source.trim(),
+            },
+            ...state.templates,
+          ],
+        })),
+
+      updateTemplate: (id, patch) =>
+        set((state) => ({
+          templates: state.templates.map((item) =>
+            item.id === id ? { ...item, ...patch } : item
+          ),
+        })),
+
+      deleteTemplate: (id) =>
+        set((state) => ({
+          templates: state.templates.filter((item) => item.id !== id),
+        })),
+
+      addHistory: (item) =>
+        set((state) => ({
+          history: [
+            {
+              id: generateId(),
+              createdAt: new Date().toISOString(),
+              ...item,
+            },
+            ...state.history,
+          ].slice(0, 30),
+        })),
+
+      clearHistory: () => set({ history: [] }),
+
+      addClipboardItem: (text) =>
+        set((state) => ({
+          clipboard: [
+            {
+              id: generateId(),
+              text: text.trim(),
+              createdAt: new Date().toISOString(),
+            },
+            ...state.clipboard,
+          ].slice(0, 20),
+        })),
+
+      deleteClipboardItem: (id) =>
+        set((state) => ({
+          clipboard: state.clipboard.filter((item) => item.id !== id),
+        })),
+
+      addGlossaryRule: (source, target) =>
+        set((state) => ({
+          glossary: [
+            {
+              id: generateId(),
+              source: source.trim(),
+              target: target.trim(),
+            },
+            ...state.glossary,
+          ],
+        })),
+
+      deleteGlossaryRule: (id) =>
+        set((state) => ({
+          glossary: state.glossary.filter((item) => item.id !== id),
+        })),
+    }),
+    {
+      name: 'duoplus-translator',
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<TranslatorStore> | undefined;
+        return {
+          ...currentState,
+          ...persisted,
+          templates: persisted?.templates?.length ? persisted.templates : currentState.templates,
+          history: persisted?.history ?? currentState.history,
+          clipboard: persisted?.clipboard ?? currentState.clipboard,
+          glossary: persisted?.glossary ?? currentState.glossary,
+        };
+      },
+    }
   )
 );

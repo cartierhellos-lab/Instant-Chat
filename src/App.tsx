@@ -3,6 +3,7 @@ import { ROUTE_PATHS, getHostMode } from '@/lib/index';
 import { useAdminStore, useSettingsStore } from '@/hooks/useStore';
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
+import TranslatorPage from '@/pages/Translator';
 import CommunityPage from '@/pages/Community';
 import Accounts from '@/pages/Accounts';
 import Phones from '@/pages/Phones';
@@ -58,6 +59,7 @@ export default function App() {
           }
         >
           <Route path={ROUTE_PATHS.HOME} element={<Home />} />
+          <Route path={ROUTE_PATHS.TRANSLATOR} element={<TranslatorPage />} />
           <Route path={ROUTE_PATHS.COMMUNITY} element={<CommunityPage />} />
           <Route path={ROUTE_PATHS.ACCOUNTS} element={<Accounts />} />
           <Route path={ROUTE_PATHS.PHONES} element={<Phones />} />
