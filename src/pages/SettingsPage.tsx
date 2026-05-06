@@ -170,17 +170,28 @@ function AdminPanel() {
           <div className="p-4 border-b border-[#dbe2e9]">
             <div className="mb-3 flex items-center justify-between text-[10px]">
               <span className="text-muted-foreground">子账号数据源</span>
-              <span
-                className={cn(
-                  'rounded-full px-2 py-0.5 font-medium',
-                  syncStatus === 'ok' && 'bg-green-50 text-green-700',
-                  syncStatus === 'syncing' && 'bg-blue-50 text-blue-700',
-                  syncStatus === 'offline' && 'bg-amber-50 text-amber-700',
-                  syncStatus === 'idle' && 'border border-[#dbe2e9] bg-white text-muted-foreground'
-                )}
-              >
-                {syncStatus === 'ok' ? '已同步' : syncStatus === 'syncing' ? '同步中' : syncStatus === 'offline' ? '数据库离线' : '待同步'}
-              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 font-medium',
+                    syncStatus === 'ok' && 'bg-green-50 text-green-700',
+                    syncStatus === 'syncing' && 'bg-blue-50 text-blue-700',
+                    syncStatus === 'offline' && 'bg-amber-50 text-amber-700',
+                    syncStatus === 'idle' && 'border border-[#dbe2e9] bg-white text-muted-foreground'
+                  )}
+                >
+                  {syncStatus === 'ok' ? '已同步' : syncStatus === 'syncing' ? '同步中' : syncStatus === 'offline' ? '数据库离线' : '待同步'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void refreshSubAccounts()}
+                  disabled={syncStatus === 'syncing'}
+                  className="tool-btn h-6 px-2 text-[10px] disabled:opacity-40"
+                >
+                  <RefreshCw size={11} className={cn(syncStatus === 'syncing' && 'animate-spin')} />
+                  同步
+                </button>
+              </div>
             </div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">新建子账号</p>
             <input
@@ -206,10 +217,17 @@ function AdminPanel() {
 
           {/* Sub account list */}
           <div className="flex-1 overflow-y-auto">
-            {subAccounts.length === 0 ? (
+            {syncStatus === 'syncing' && subAccounts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-40 text-center px-4">
+                <RefreshCw size={24} className="text-muted-foreground/40 mb-2 animate-spin" />
+                <p className="text-xs text-muted-foreground">正在从数据库加载子账号…</p>
+              </div>
+            ) : subAccounts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 text-center px-4">
                 <Users size={32} className="text-muted-foreground/30 mb-2" />
-                <p className="text-xs text-muted-foreground">暂无子账号</p>
+                <p className="text-xs text-muted-foreground">
+                  {syncStatus === 'offline' ? '数据库未连接，暂时无法读取子账号' : '暂无子账号'}
+                </p>
               </div>
             ) : (
               subAccounts.map((sub) => (
