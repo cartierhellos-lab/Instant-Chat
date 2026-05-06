@@ -14,16 +14,24 @@ export const ROUTE_PATHS = {
 
 export type HostMode = 'admin' | 'user' | 'default';
 
-export const ADMIN_HOSTNAME = 'admin.aobesiwei.net';
-export const USER_HOSTNAME = 'app.aobesiwei.net';
+export const INTERNAL_ADMIN_HOSTNAME = 'admin.cartiermiller.cc.cd';
+export const INTERNAL_USER_HOSTNAME = 'app.cartiermiller.cc.cd';
+export const EXTERNAL_HOSTNAME = 'hkd.llc';
+export const EXTERNAL_ADMIN_HOSTNAME = 'admin.hkd.llc';
+export const EXTERNAL_USER_HOSTNAME = 'app.hkd.llc';
+export const ADMIN_HOSTNAME = INTERNAL_ADMIN_HOSTNAME;
+export const USER_HOSTNAME = INTERNAL_USER_HOSTNAME;
+
+const ADMIN_HOSTS = new Set([INTERNAL_ADMIN_HOSTNAME, EXTERNAL_ADMIN_HOSTNAME]);
+const USER_HOSTS = new Set([INTERNAL_USER_HOSTNAME, EXTERNAL_USER_HOSTNAME]);
 
 export function getHostMode(hostname?: string): HostMode {
   const current =
     hostname ??
     (typeof window !== 'undefined' ? window.location.hostname : '');
 
-  if (current === ADMIN_HOSTNAME) return 'admin';
-  if (current === USER_HOSTNAME) return 'user';
+  if (ADMIN_HOSTS.has(current)) return 'admin';
+  if (USER_HOSTS.has(current)) return 'user';
   return 'default';
 }
 
@@ -256,15 +264,17 @@ export const DEFAULT_SETTINGS: AppSettings = {
 };
 
 const SHARED_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-const SHARED_DOMAIN_ROOT = 'aobesiwei.net';
+const SHARED_DOMAIN_ROOTS = ['cartiermiller.cc.cd', 'hkd.llc'] as const;
 
 export function getSharedCookieDomain(hostname?: string): string | null {
   const current =
     hostname ??
     (typeof window !== 'undefined' ? window.location.hostname : '');
 
-  if (current === SHARED_DOMAIN_ROOT || current.endsWith(`.${SHARED_DOMAIN_ROOT}`)) {
-    return `.${SHARED_DOMAIN_ROOT}`;
+  for (const root of SHARED_DOMAIN_ROOTS) {
+    if (current === root || current.endsWith(`.${root}`)) {
+      return `.${root}`;
+    }
   }
   return null;
 }
