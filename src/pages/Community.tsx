@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MessageCircleMore, Send, Users, ShieldCheck, PencilLine, Lock, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import { cn, type CommunityMember, type CommunityMessage, type CommunityRoom, type SubAccount } from '@/lib/index';
 import { useAdminStore } from '@/hooks/useStore';
@@ -64,16 +64,16 @@ export default function CommunityPage() {
     [members, selectedKey]
   );
 
-  const refreshMembers = async () => {
+  const refreshMembers = useCallback(async () => {
     const data = await getSubAccounts();
     setSubAccounts(data);
     setMembers([
       { key: 'admin', name: '管理员', role: 'admin', note: '社群管理员' },
       ...data.map(memberFromSubAccount),
     ]);
-  };
+  }, [setSubAccounts]);
 
-  const refreshMessages = async (nextSelected = selectedKey, nextRoom = room) => {
+  const refreshMessages = useCallback(async (nextSelected = selectedKey, nextRoom = room) => {
     if (!currentMember || !nextRoom) return;
     if (nextSelected === 'room') {
       const roomMessages = await getCommunityMessages(nextRoom.id);
@@ -82,7 +82,7 @@ export default function CommunityPage() {
       const directMessages = await getDirectMessages(currentMember.key, nextSelected);
       setMessages(directMessages);
     }
-  };
+  }, [currentMember, room, selectedKey]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -119,12 +119,12 @@ export default function CommunityPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshMembers, refreshMessages]);
 
   useEffect(() => {
     if (!room || !currentMember) return;
-    refreshMessages();
-  }, [selectedKey, room?.id, currentMember?.key]);
+    void refreshMessages();
+  }, [currentMember, refreshMessages, room]);
 
   const handleSend = async () => {
     const body = input.trim();

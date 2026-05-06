@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Settings, Key, Globe, RefreshCw, Check, AlertCircle, Wifi, WifiOff, LogOut, ShieldCheck, User, Plus, Trash2, Copy, Smartphone, Users, Database, Languages } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSettingsStore, useChatStore, useAdminStore, useAccountStore } from '@/hooks/useStore';
@@ -38,7 +38,7 @@ function AdminPanel() {
   const [saving, setSaving] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'ok' | 'offline'>('idle');
 
-  const refreshSubAccounts = async () => {
+  const refreshSubAccounts = useCallback(async () => {
     try {
       setSyncStatus('syncing');
       const latest = await getSubAccounts();
@@ -57,11 +57,11 @@ function AdminPanel() {
         description: (error as Error).message || '数据库暂时不可用，请检查 Supabase 配置。',
       });
     }
-  };
+  }, [selectedSub, setSubAccounts]);
 
   useEffect(() => {
     void refreshSubAccounts();
-  }, []);
+  }, [refreshSubAccounts]);
 
   useEffect(() => {
     if (!selectedSub) return;

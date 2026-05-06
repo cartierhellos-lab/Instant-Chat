@@ -43,7 +43,7 @@ export default function LoginPage() {
     return () => {
       cancelled = true;
     };
-  }, [setSubAccounts]);
+  }, [setRoleResolved, setSubAccounts]);
 
   const hostCopy = hostMode === 'admin'
     ? {
