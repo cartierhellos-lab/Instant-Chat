@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Send, RefreshCw, MessageSquare, Languages, Inbox } from 'lucide-react';
+import { Search, Plus, Send, RefreshCw, MessageSquare, Languages, Inbox, Image as ImageIcon, Smile } from 'lucide-react';
 import { useChatStore, useSettingsStore } from '@/hooks/useStore';
 import { cn, getInitials } from '@/lib/index';
 import { writeSmsByPhone } from '@/api/duoplus';
 import { translateText } from '@/api/translate';
 import BroadcastDialog from '@/components/BroadcastDialog';
 import type { Conversation, SmsMessage } from '@/lib/index';
+import { toast } from '@/hooks/use-toast';
 
 // ─── 时间格式化 ──────────────────────────────────────────────────────────────
 function formatMsgTime(iso: string): string {
@@ -73,7 +74,17 @@ function StatusIcon({ status }: { status?: string }) {
   return null;
 }
 
-function MessageBubble({ msg }: { msg: SmsMessage }) {
+function MessageBubble({
+  msg,
+  translatedText,
+  translating,
+  targetLang,
+}: {
+  msg: SmsMessage;
+  translatedText?: string;
+  translating?: boolean;
+  targetLang: string;
+}) {
   const isOut = msg.direction === 'outbound';
   return (
     <div className={cn('flex mb-1.5', isOut ? 'justify-end' : 'justify-start')}>
@@ -87,6 +98,17 @@ function MessageBubble({ msg }: { msg: SmsMessage }) {
           <img src={msg.imageUrl} alt="" className="max-w-full rounded mb-1.5 max-h-40 object-contain" />
         )}
         <p className="break-words">{msg.message}</p>
+        {!isOut && (translating || translatedText) && (
+          <div className="mt-2 rounded-[8px] border border-primary/15 bg-primary/5 px-2 py-1.5">
+            <div className="flex items-center gap-1 text-[9px] text-primary/70 font-mono uppercase">
+              <Languages className="w-2.5 h-2.5" />
+              <span>{targetLang}</span>
+            </div>
+            <p className="mt-1 break-words text-[11px] text-foreground/80">
+              {translating ? '翻译中…' : translatedText}
+            </p>
+          </div>
+        )}
         <div className={cn('flex items-center gap-1 mt-0.5 text-[10px]', isOut ? 'justify-end text-white/60' : 'text-muted-foreground')}>
           <span className="font-mono">{formatMsgTime(msg.receivedAt)}</span>
           {isOut && <StatusIcon status={msg.status} />}
@@ -116,12 +138,26 @@ function ChatPanel({ conv }: { conv: Conversation }) {
   const [translated, setTranslated] = useState('');
   const [translating, setTranslating] = useState(false);
   const [translateEngine, setTranslateEngine] = useState('');
+  const [inboundTranslations, setInboundTranslations] = useState<Record<string, string>>({});
+  const [translatingIds, setTranslatingIds] = useState<Record<string, boolean>>({});
+  const [selectedImage, setSelectedImage] = useState<{ name: string; url: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const translateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inflightTranslations = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conv.messages.length]);
+
+  useEffect(() => {
+    setInput('');
+    setTranslated('');
+    setSelectedImage(null);
+    setInboundTranslations({});
+    setTranslatingIds({});
+    inflightTranslations.current.clear();
+  }, [conv.id]);
 
   useEffect(() => {
     if (!translateOn || !input.trim()) { setTranslated(''); setTranslateEngine(''); return; }
@@ -141,21 +177,80 @@ function ChatPanel({ conv }: { conv: Conversation }) {
     return () => { if (translateTimer.current) clearTimeout(translateTimer.current); };
   }, [input, translateOn, targetLang, settings.translateEngine, settings.ollamaUrl, settings.ollamaModel]);
 
+  useEffect(() => {
+    if (!translateOn) return;
+
+    conv.messages
+      .filter((msg) => msg.direction === 'inbound' && !!msg.message.trim())
+      .forEach((msg) => {
+        const cacheKey = `${msg.id}:${targetLang}`;
+        if (inboundTranslations[cacheKey] !== undefined || inflightTranslations.current.has(cacheKey)) {
+          return;
+        }
+
+        inflightTranslations.current.add(cacheKey);
+        setTranslatingIds((current) => ({ ...current, [cacheKey]: true }));
+
+        void translateText(msg.message, {
+          engine: settings.translateEngine ?? 'mymemory',
+          ollamaUrl: settings.ollamaUrl,
+          ollamaModel: settings.ollamaModel,
+          targetLang,
+        }).then(({ result }) => {
+          setInboundTranslations((current) => ({ ...current, [cacheKey]: result || '' }));
+        }).catch(() => {
+          setInboundTranslations((current) => ({ ...current, [cacheKey]: '' }));
+        }).finally(() => {
+          inflightTranslations.current.delete(cacheKey);
+          setTranslatingIds((current) => ({ ...current, [cacheKey]: false }));
+        });
+      });
+  }, [conv.messages, inboundTranslations, settings.ollamaModel, settings.ollamaUrl, settings.translateEngine, targetLang, translateOn]);
+
+  useEffect(() => {
+    return () => {
+      if (selectedImage?.url?.startsWith('blob:')) {
+        URL.revokeObjectURL(selectedImage.url);
+      }
+    };
+  }, [selectedImage]);
+
+  const handlePickImage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (selectedImage?.url?.startsWith('blob:')) {
+      URL.revokeObjectURL(selectedImage.url);
+    }
+    const url = URL.createObjectURL(file);
+    setSelectedImage({ name: file.name, url });
+    event.target.value = '';
+  };
+
   const handleSend = async (useTranslated = false) => {
     const text = (useTranslated ? translated : input).trim();
-    if (!text || sending) return;
-    setInput(''); setTranslated('');
+    if ((!text && !selectedImage) || sending) return;
+    const previewImage = selectedImage;
+    const payloadText = text;
+    if (previewImage) {
+      toast({
+        title: '外部通道图片尚未接通',
+        description: '当前第三方号码聊天仅支持文本直发；图片发送将改走 DuoPlus 云机自动化流程。',
+      });
+      return;
+    }
+    setInput('');
+    setTranslated('');
     setSending(true);
     try {
       if (settings.apiKey) {
         await writeSmsByPhone(settings.apiKey, settings.apiRegion, conv.cloudNumber.id, [
-          { phone: conv.contactNumber, message: text },
+          { phone: conv.contactNumber, message: payloadText },
         ]);
       }
-      sendOutboundMessage(conv.id, text);
+      sendOutboundMessage(conv.id, payloadText);
       if (settings.apiKey) setTimeout(() => pollMessages(settings.apiKey, settings.apiRegion), 2000);
     } catch {
-      sendOutboundMessage(conv.id, text);
+      sendOutboundMessage(conv.id, payloadText);
     } finally {
       setSending(false);
     }
@@ -183,7 +278,18 @@ function ChatPanel({ conv }: { conv: Conversation }) {
             <p className="text-[11px] text-muted-foreground">暂无消息记录</p>
           </div>
         ) : (
-          conv.messages.map((msg) => <MessageBubble key={msg.id} msg={msg} />)
+          conv.messages.map((msg) => {
+            const cacheKey = `${msg.id}:${targetLang}`;
+            return (
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                translatedText={inboundTranslations[cacheKey]}
+                translating={!!translatingIds[cacheKey]}
+                targetLang={targetLang}
+              />
+            );
+          })
         )}
         <div ref={bottomRef} />
       </div>
@@ -232,8 +338,52 @@ function ChatPanel({ conv }: { conv: Conversation }) {
               {LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
             </select>
           )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePickImage}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center justify-center w-5 h-5 rounded-[6px] text-muted-foreground border border-[#cdd4dc] bg-white hover:border-primary hover:text-primary transition"
+            title="选择图片"
+          >
+            <ImageIcon size={11} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setInput((current) => `${current}${current ? ' ' : ''}😊`)}
+            className="inline-flex items-center justify-center w-5 h-5 rounded-[6px] text-muted-foreground border border-[#cdd4dc] bg-white hover:border-primary hover:text-primary transition"
+            title="插入表情"
+          >
+            <Smile size={11} />
+          </button>
           <span className="ml-auto text-[9px] text-muted-foreground">Enter 发送 · Shift+Enter 换行</span>
         </div>
+        {selectedImage && (
+          <div className="mb-2 flex items-center gap-2 rounded-[10px] border border-[#d8dee6] bg-white px-2 py-2">
+            <img src={selectedImage.url} alt={selectedImage.name} className="h-12 w-12 rounded object-cover border border-[#d8dee6]" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[11px] text-foreground">{selectedImage.name}</p>
+              <p className="text-[10px] text-muted-foreground">外部号码图片发送需走 DuoPlus 自动化流程，当前仅保留选图入口</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedImage.url.startsWith('blob:')) {
+                  URL.revokeObjectURL(selectedImage.url);
+                }
+                setSelectedImage(null);
+              }}
+              className="tool-btn h-6 px-2 text-[10px]"
+            >
+              移除
+            </button>
+          </div>
+        )}
         <div className="flex items-end gap-2">
           <textarea
             value={input}
@@ -245,7 +395,7 @@ function ChatPanel({ conv }: { conv: Conversation }) {
           />
           <button
             onClick={() => handleSend(false)}
-            disabled={!input.trim() || sending}
+            disabled={(!input.trim() && !selectedImage) || sending}
             className="tool-btn tool-btn-primary flex items-center justify-center w-9 h-9 px-0 rounded-[10px] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
           >
             {sending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}

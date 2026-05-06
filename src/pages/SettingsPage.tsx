@@ -2,16 +2,23 @@ import { useState, useEffect } from 'react';
 import { Settings, Key, Globe, RefreshCw, Check, AlertCircle, Wifi, WifiOff, LogOut, ShieldCheck, User, Plus, Trash2, Copy, Smartphone, Users, Database, Languages } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSettingsStore, useChatStore, useAdminStore, useAccountStore } from '@/hooks/useStore';
-import { cn, ROUTE_PATHS, generateSubKey, formatTime } from '@/lib/index';
+import { cn, ROUTE_PATHS, generateSubKey, formatTime, syncSharedSettings } from '@/lib/index';
 import { fetchCloudNumbers } from '@/api/duoplus';
-import { reinitSupabase, testSupabaseConnection } from '@/api/supabase';
+import {
+  reinitSupabase,
+  testSupabaseConnection,
+  getSubAccounts,
+  createSubAccount as createSubAccountRemote,
+  updateSubAccount as updateSubAccountRemote,
+  deleteSubAccount as deleteSubAccountRemote,
+} from '@/api/supabase';
 import type { SubAccount } from '@/lib/index';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { toast } from '@/hooks/use-toast';
 
 // ─── 管理员 Tab 内容（原 Admin.tsx 功能）──────────────────────────────────────
 function AdminPanel() {
-  const { subAccounts, createSubAccount, deleteSubAccount, updateSubAccount, assignPhones, assignAccounts } = useAdminStore();
+  const { subAccounts, setSubAccounts } = useAdminStore();
   const { cloudPhones } = useChatStore();
   const { accounts } = useAccountStore();
 
@@ -23,6 +30,28 @@ function AdminPanel() {
   const [accountSelections, setAccountSelections] = useState<string[]>([]);
   const [assignMode, setAssignMode] = useState<'phones' | 'accounts'>('phones');
   const [regenTarget, setRegenTarget] = useState<SubAccount | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const refreshSubAccounts = async () => {
+    const latest = await getSubAccounts();
+    setSubAccounts(latest);
+    if (selectedSub) {
+      const nextSelected = latest.find((item) => item.id === selectedSub.id) ?? null;
+      setSelectedSub(nextSelected);
+      setPhoneSelections(nextSelected?.assignedPhoneIds ?? []);
+      setAccountSelections(nextSelected?.assignedAccountIds ?? []);
+    }
+  };
+
+  useEffect(() => {
+    void refreshSubAccounts();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedSub) return;
+    setPhoneSelections(selectedSub.assignedPhoneIds);
+    setAccountSelections(selectedSub.assignedAccountIds);
+  }, [selectedSub]);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -30,9 +59,23 @@ function AdminPanel() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newName.trim()) return;
-    createSubAccount(newName.trim(), newNote.trim() || undefined);
+    setSaving(true);
+    try {
+      await createSubAccountRemote({
+        name: newName.trim(),
+        key: generateSubKey(),
+        role: 'user',
+        assignedPhoneIds: [],
+        assignedAccountIds: [],
+        createdAt: new Date().toISOString(),
+        note: newNote.trim() || undefined,
+      });
+      await refreshSubAccounts();
+    } finally {
+      setSaving(false);
+    }
     setNewName('');
     setNewNote('');
   };
@@ -41,9 +84,15 @@ function AdminPanel() {
     setRegenTarget(sub);
   };
 
-  const confirmRegenKey = () => {
+  const confirmRegenKey = async () => {
     if (!regenTarget) return;
-    updateSubAccount(regenTarget.id, { key: generateSubKey() });
+    setSaving(true);
+    try {
+      await updateSubAccountRemote(regenTarget.id, { key: generateSubKey() });
+      await refreshSubAccounts();
+    } finally {
+      setSaving(false);
+    }
     toast({
       title: '密钥已重置',
       description: `“${regenTarget.name}” 的旧密钥已失效。`,
@@ -51,10 +100,18 @@ function AdminPanel() {
     setRegenTarget(null);
   };
 
-  const handleSaveAssign = () => {
+  const handleSaveAssign = async () => {
     if (!selectedSub) return;
-    if (assignMode === 'phones') assignPhones(selectedSub.id, phoneSelections);
-    else assignAccounts(selectedSub.id, accountSelections);
+    setSaving(true);
+    try {
+      await updateSubAccountRemote(selectedSub.id, {
+        assignedPhoneIds: assignMode === 'phones' ? phoneSelections : selectedSub.assignedPhoneIds,
+        assignedAccountIds: assignMode === 'accounts' ? accountSelections : selectedSub.assignedAccountIds,
+      });
+      await refreshSubAccounts();
+    } finally {
+      setSaving(false);
+    }
     setSelectedSub(null);
   };
 
@@ -84,10 +141,10 @@ function AdminPanel() {
             />
             <button
               onClick={handleCreate}
-              disabled={!newName.trim()}
+              disabled={!newName.trim() || saving}
               className="tool-btn tool-btn-primary w-full justify-center py-2 text-sm font-medium disabled:opacity-40"
             >
-              <Plus size={15} /> 生成密钥
+              {saving ? <RefreshCw size={15} className="animate-spin" /> : <Plus size={15} />} 生成密钥
             </button>
           </div>
 
@@ -111,7 +168,17 @@ function AdminPanel() {
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-foreground">{sub.name}</span>
                     <button
-                      onClick={(e) => { e.stopPropagation(); deleteSubAccount(sub.id); if (selectedSub?.id === sub.id) setSelectedSub(null); }}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setSaving(true);
+                        try {
+                          await deleteSubAccountRemote(sub.id);
+                          await refreshSubAccounts();
+                          if (selectedSub?.id === sub.id) setSelectedSub(null);
+                        } finally {
+                          setSaving(false);
+                        }
+                      }}
                       className="p-1 rounded hover:bg-white text-muted-foreground hover:text-destructive transition"
                     >
                       <Trash2 size={12} />
@@ -235,9 +302,10 @@ function AdminPanel() {
 
               <button
                 onClick={handleSaveAssign}
-                className="tool-btn tool-btn-primary w-full justify-center py-2 text-sm font-medium"
+                disabled={saving}
+                className="tool-btn tool-btn-primary w-full justify-center py-2 text-sm font-medium disabled:opacity-40"
               >
-                <Check size={14} /> 保存分配
+                {saving ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />} 保存分配
               </button>
             </div>
           )}
@@ -313,13 +381,18 @@ export default function SettingsPage() {
   };
 
   const handleSave = () => {
-    updateSettings({
+    const nextSettings = {
       apiKey,
       apiRegion: region,
       pollInterval: Math.max(3, Math.min(60, pollInterval)),
       translateEngine,
       ollamaUrl: ollamaUrl.trim() || 'http://localhost:11434',
       ollamaModel: ollamaModel.trim() || 'qwen2:7b',
+    };
+    updateSettings(nextSettings);
+    syncSharedSettings({
+      ...settings,
+      ...nextSettings,
     });
     loadNumbers(apiKey, region);
     setSaved(true);

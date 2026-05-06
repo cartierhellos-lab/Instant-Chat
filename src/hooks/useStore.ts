@@ -7,6 +7,7 @@ import type {
 } from '@/lib/index';
 import {
   DEFAULT_SETTINGS, generateId, MAX_SLOTS, buildAdbCommand, generateSubKey,
+  getSharedSettings, syncSharedSettings,
 } from '@/lib/index';
 import { fetchCloudNumbers, fetchSmsList, fetchCloudPhones, executeAdbCommand, writeSmsByPhone } from '@/api/duoplus';
 import type { TextNowRawAccount } from '@/api/duoplus';
@@ -22,12 +23,44 @@ interface SettingsStore {
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(
-    (set) => ({
-      settings: DEFAULT_SETTINGS,
+    (set, get) => ({
+      settings: {
+        ...DEFAULT_SETTINGS,
+        ...getSharedSettings(),
+      },
       updateSettings: (patch) =>
-        set((state) => ({ settings: { ...state.settings, ...patch } })),
+        set((state) => {
+          const nextSettings = { ...state.settings, ...patch };
+          syncSharedSettings(nextSettings);
+          return { settings: nextSettings };
+        }),
     }),
-    { name: 'duoplus-settings' }
+    {
+      name: 'duoplus-settings',
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState as Partial<SettingsStore> | undefined)?.settings ?? {};
+        const shared = getSharedSettings();
+        const current = currentState.settings;
+
+        return {
+          ...currentState,
+          ...(persistedState as object),
+          settings: {
+            ...current,
+            ...shared,
+            ...persisted,
+            apiKey: persisted.apiKey || shared.apiKey || current.apiKey,
+            apiRegion: persisted.apiRegion ?? shared.apiRegion ?? current.apiRegion,
+            pollInterval: persisted.pollInterval ?? shared.pollInterval ?? current.pollInterval,
+            adbCommandTemplate: persisted.adbCommandTemplate || shared.adbCommandTemplate || current.adbCommandTemplate,
+            translateEngine: persisted.translateEngine ?? shared.translateEngine ?? current.translateEngine,
+            ollamaUrl: persisted.ollamaUrl || shared.ollamaUrl || current.ollamaUrl,
+            ollamaModel: persisted.ollamaModel || shared.ollamaModel || current.ollamaModel,
+            accessKey: persisted.accessKey,
+          },
+        };
+      },
+    }
   )
 );
 
@@ -603,6 +636,9 @@ interface AdminStore {
   currentRole: AppRole;
   /** 当前子账号ID（管理员为null） */
   currentSubId: string | null;
+  roleResolved: boolean;
+  setSubAccounts: (accounts: SubAccount[]) => void;
+  setRoleResolved: (resolved: boolean) => void;
   setRole: (role: AppRole, subId?: string) => void;
   createSubAccount: (name: string, note?: string) => SubAccount;
   updateSubAccount: (id: string, patch: Partial<SubAccount>) => void;
@@ -618,7 +654,10 @@ export const useAdminStore = create<AdminStore>()(
       subAccounts: [] as SubAccount[],
       currentRole: 'admin' as AppRole,
       currentSubId: null as string | null,
+      roleResolved: false,
 
+      setSubAccounts: (accounts) => set({ subAccounts: accounts }),
+      setRoleResolved: (resolved) => set({ roleResolved: resolved }),
       setRole: (role, subId) => set({ currentRole: role, currentSubId: subId ?? null }),
 
       createSubAccount: (name, note) => {

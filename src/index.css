@@ -326,4 +326,51 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  .marquee-bar {
+    position: relative;
+    overflow: hidden;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-bottom: 1px solid oklch(0.84 0.01 255);
+    background:
+      linear-gradient(180deg, oklch(0.99 0.01 25) 0%, oklch(0.96 0.01 25) 100%);
+  }
+
+  .marquee-track {
+    display: inline-flex;
+    min-width: max-content;
+    gap: 48px;
+    align-items: center;
+    color: oklch(0.58 0.21 25);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    animation: marquee-slide 24s linear infinite;
+  }
+
+  .marquee-track span::before {
+    content: "公告";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: oklch(0.91 0.05 25);
+    color: oklch(0.55 0.2 25);
+    font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+
+  @keyframes marquee-slide {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    100% {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
 }

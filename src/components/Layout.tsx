@@ -1,21 +1,122 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { MessageSquare, ListTodo, Settings, RefreshCw, WifiOff, Phone, Users, Smartphone, Wifi } from 'lucide-react';
+import { MessageSquare, ListTodo, Settings, RefreshCw, WifiOff, Phone, Users, Smartphone, Wifi, Megaphone } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import { useSettingsStore, useChatStore, useAdminStore } from '@/hooks/useStore';
 import { cn } from '@/lib/index';
+import { ensureCommunityRoom, getSubAccounts } from '@/api/supabase';
 
 export default function Layout() {
   const navigate = useNavigate();
   const { settings } = useSettingsStore();
   const { startPolling, stopPolling, isLoading, lastError, cloudNumbers, loadCloudPhones } = useChatStore();
-  const { currentRole, resolveRole, setRole } = useAdminStore();
+  const { currentRole, resolveRole, setRole, setSubAccounts, setRoleResolved } = useAdminStore();
   const pollingKey = useRef<string>('');
+  const [marqueeNotice, setMarqueeNotice] = useState('系统公告：欢迎使用奥贝思维空间站，管理员可在“社群”页面发布最新通知。');
+  const lastNoticeRef = useRef('');
+
+  const playNoticeTone = () => {
+    if (typeof window === 'undefined') return;
+    const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextCtor) return;
+    const ctx = new AudioContextCtor();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.24);
+    oscillator.onended = () => {
+      void ctx.close();
+    };
+  };
+
+  const notifyNotice = (notice: string) => {
+    if (typeof window === 'undefined' || !notice.trim()) return;
+    playNoticeTone();
+    if (!('Notification' in window)) return;
+
+    const show = () => {
+      try {
+        new Notification('奥贝思维空间站公告', {
+          body: notice,
+          tag: 'aobesiwei-marquee-notice',
+        });
+      } catch {
+        // ignore browser notification failures
+      }
+    };
+
+    if (Notification.permission === 'granted') {
+      show();
+      return;
+    }
+
+    if (Notification.permission === 'default') {
+      void Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') show();
+      });
+    }
+  };
 
   useEffect(() => {
-    const role = resolveRole(settings.accessKey ?? '', settings.apiKey);
-    setRole(role);
-  }, [settings.accessKey, settings.apiKey]);
+    let cancelled = false;
+    (async () => {
+      try {
+        if (settings.accessKey && settings.accessKey !== settings.apiKey) {
+          const accounts = await getSubAccounts();
+          if (cancelled) return;
+          setSubAccounts(accounts);
+        }
+      } catch {
+        // keep local cache fallback
+      } finally {
+        if (!cancelled) {
+          const role = resolveRole(settings.accessKey ?? '', settings.apiKey);
+          setRole(role);
+          setRoleResolved(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolveRole, setRole, setRoleResolved, setSubAccounts, settings.accessKey, settings.apiKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadNotice = async () => {
+      try {
+        const room = await ensureCommunityRoom();
+        if (!cancelled && room.marqueeNotice?.trim()) {
+          const nextNotice = room.marqueeNotice.trim();
+          setMarqueeNotice(nextNotice);
+          if (lastNoticeRef.current && lastNoticeRef.current !== nextNotice) {
+            notifyNotice(nextNotice);
+          }
+          lastNoticeRef.current = nextNotice;
+        }
+      } catch {
+        // keep fallback notice
+      }
+    };
+
+    void loadNotice();
+    const timer = window.setInterval(() => {
+      void loadNotice();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!settings.apiKey) {
@@ -38,6 +139,7 @@ export default function Layout() {
 
   const NAV_ITEMS = [
     { path: ROUTE_PATHS.HOME,     icon: MessageSquare, label: '聊天',   show: true },
+    { path: ROUTE_PATHS.COMMUNITY, icon: Megaphone,    label: '社群',   show: true },
     { path: ROUTE_PATHS.ACCOUNTS, icon: Users,         label: '资源',   show: isAdmin },
     { path: ROUTE_PATHS.PHONES,   icon: Smartphone,    label: '设备',   show: true },
     { path: ROUTE_PATHS.TASKS,    icon: ListTodo,      label: '群发',   show: true },
@@ -124,6 +226,13 @@ export default function Layout() {
           )}
         </div>
       </header>
+
+      <div className="marquee-bar shrink-0">
+        <div className="marquee-track">
+          <span>{marqueeNotice}</span>
+          <span aria-hidden="true">{marqueeNotice}</span>
+        </div>
+      </div>
 
       {/* ── 内容区 ─────────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">

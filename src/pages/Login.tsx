@@ -2,24 +2,90 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, Loader2 } from 'lucide-react';
 import { useSettingsStore, useAdminStore, useChatStore } from '@/hooks/useStore';
-import { ROUTE_PATHS } from '@/lib/index';
+import { ROUTE_PATHS, ADMIN_HOSTNAME, USER_HOSTNAME, getHostMode } from '@/lib/index';
+import { getSubAccounts } from '@/api/supabase';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { settings, updateSettings } = useSettingsStore();
-  const { setRole, subAccounts } = useAdminStore();
+  const { setRole, subAccounts, setSubAccounts, setRoleResolved } = useAdminStore();
   const { startPolling } = useChatStore();
+  const hostMode = getHostMode();
 
   const [key, setKey] = useState('');
   const [show, setShow] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const isAdminSession =
+    settings.accessKey === '' ||
+    (!!settings.apiKey && settings.accessKey === settings.apiKey);
+  const isUserSession =
+    settings.accessKey !== undefined && !isAdminSession;
+
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const accounts = await getSubAccounts();
+        if (!cancelled) {
+          setSubAccounts(accounts);
+          setRoleResolved(true);
+        }
+      } catch {
+        // keep local fallback list
+        if (!cancelled) {
+          setRoleResolved(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setSubAccounts]);
+
+  const hostCopy = hostMode === 'admin'
+    ? {
+        subtitle: '· 奥贝思维空间站 管理后台',
+        prompt: `输入管理员 API Key 进入管理后台。子账号请使用 ${USER_HOSTNAME} 登录。`,
+        footer: 'AOBESIWEI ADMIN',
+        button: '进入管理后台',
+        placeholder: '输入管理员 API Key…',
+      }
+    : hostMode === 'user'
+      ? {
+          subtitle: '· 奥贝思维空间站 用户入口',
+          prompt: `输入子账号密钥访问分配资源。管理员请使用 ${ADMIN_HOSTNAME} 登录。`,
+          footer: 'AOBESIWEI USER',
+          button: '进入用户系统',
+          placeholder: '输入子账号密钥…',
+        }
+      : {
+          subtitle: '· 奥贝思维空间站',
+          prompt: '输入管理员 API Key 或子账号密钥进入系统。',
+          footer: 'AOBESIWEI',
+          button: '进入系统',
+          placeholder: '粘贴密钥…',
+        };
+
+  useEffect(() => {
+    if (settings.accessKey === undefined) return;
+
+    if (hostMode === 'admin' && isUserSession) {
+      setError(`子账号请使用 ${USER_HOSTNAME} 登录`);
+      return;
+    }
+
+    if (hostMode === 'user' && isAdminSession) {
+      setError(`管理员请使用 ${ADMIN_HOSTNAME} 登录`);
+      return;
+    }
+
     if (settings.accessKey !== undefined) {
       navigate(ROUTE_PATHS.HOME, { replace: true });
     }
-  }, []);
+  }, [hostMode, isAdminSession, isUserSession, navigate, settings.accessKey]);
 
   const handleLogin = async () => {
     const trimmed = key.trim();
@@ -33,6 +99,18 @@ export default function LoginPage() {
     const isAdminKey = savedApiKey && trimmed === savedApiKey;
     const looksLikeApiKey = /^[0-9a-f-]{32,}$/i.test(trimmed);
     const matchedSub = subAccounts.find(s => s.key === trimmed);
+
+    if (hostMode === 'admin' && matchedSub) {
+      setError(`子账号请使用 ${USER_HOSTNAME} 登录`);
+      setLoading(false);
+      return;
+    }
+
+    if (hostMode === 'user' && (isAdminKey || (isFirstTime && looksLikeApiKey))) {
+      setError(`管理员请使用 ${ADMIN_HOSTNAME} 登录`);
+      setLoading(false);
+      return;
+    }
 
     if (isFirstTime && looksLikeApiKey) {
       updateSettings({ apiKey: trimmed, accessKey: '' });
@@ -76,14 +154,14 @@ export default function LoginPage() {
             </svg>
           </div>
           <span className="text-[12px] font-semibold text-foreground/80">Aobesiwei Chat</span>
-          <span className="text-[10px] text-muted-foreground ml-1">· CartierMiller 管理平台</span>
+          <span className="text-[10px] text-muted-foreground ml-1">{hostCopy.subtitle}</span>
         </div>
 
         {/* 表单区 */}
         <div className="px-6 py-6 space-y-4 bg-[linear-gradient(180deg,#ffffff_0%,#fafbfd_100%)]">
           {/* 提示文字 */}
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            输入 CartierMiller API Key 以管理员身份进入，或输入子账号密钥访问分配的资源。
+            {hostCopy.prompt}
           </p>
 
           {/* 输入框 */}
@@ -95,7 +173,7 @@ export default function LoginPage() {
                 value={key}
                 onChange={e => { setKey(e.target.value); setError(''); }}
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                placeholder="粘贴密钥…"
+                placeholder={hostCopy.placeholder}
                 autoComplete="off"
                 autoFocus
                 className="tool-input h-8 px-2.5 pr-8 text-[12px] font-mono placeholder:text-muted-foreground/50"
@@ -118,7 +196,7 @@ export default function LoginPage() {
 
         {/* 底部操作栏 */}
         <div className="tool-toolbar flex items-center justify-between px-6 py-3">
-          <span className="text-[10px] text-muted-foreground/60 font-mono tracking-wider">CARTIER MILLER</span>
+          <span className="text-[10px] text-muted-foreground/60 font-mono tracking-wider">{hostCopy.footer}</span>
           <button
             onClick={handleLogin}
             disabled={loading || !key.trim()}
@@ -126,7 +204,7 @@ export default function LoginPage() {
           >
             {loading
               ? <><Loader2 size={11} className="animate-spin" />验证中…</>
-              : <><LogIn size={11} />进入系统</>
+              : <><LogIn size={11} />{hostCopy.button}</>
             }
           </button>
         </div>
