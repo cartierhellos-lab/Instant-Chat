@@ -20,7 +20,10 @@ import { toast } from '@/hooks/use-toast';
 
 // ─── 管理员 Tab 内容（原 Admin.tsx 功能）──────────────────────────────────────
 function AdminPanel() {
-  const { subAccounts, setSubAccounts } = useAdminStore();
+  const {
+    subAccounts,
+    setSubAccounts,
+  } = useAdminStore();
   const { cloudPhones } = useChatStore();
   const { accounts } = useAccountStore();
 
@@ -33,15 +36,26 @@ function AdminPanel() {
   const [assignMode, setAssignMode] = useState<'phones' | 'accounts'>('phones');
   const [regenTarget, setRegenTarget] = useState<SubAccount | null>(null);
   const [saving, setSaving] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'ok' | 'offline'>('idle');
 
   const refreshSubAccounts = async () => {
-    const latest = await getSubAccounts();
-    setSubAccounts(latest);
-    if (selectedSub) {
-      const nextSelected = latest.find((item) => item.id === selectedSub.id) ?? null;
-      setSelectedSub(nextSelected);
-      setPhoneSelections(nextSelected?.assignedPhoneIds ?? []);
-      setAccountSelections(nextSelected?.assignedAccountIds ?? []);
+    try {
+      setSyncStatus('syncing');
+      const latest = await getSubAccounts();
+      setSubAccounts(latest);
+      if (selectedSub) {
+        const nextSelected = latest.find((item) => item.id === selectedSub.id) ?? null;
+        setSelectedSub(nextSelected);
+        setPhoneSelections(nextSelected?.assignedPhoneIds ?? []);
+        setAccountSelections(nextSelected?.assignedAccountIds ?? []);
+      }
+      setSyncStatus('ok');
+    } catch (error) {
+      setSyncStatus('offline');
+      toast({
+        title: '同步子账号失败',
+        description: (error as Error).message || '数据库暂时不可用，请检查 Supabase 配置。',
+      });
     }
   };
 
@@ -75,6 +89,15 @@ function AdminPanel() {
         note: newNote.trim() || undefined,
       });
       await refreshSubAccounts();
+      toast({
+        title: '子账号已创建',
+        description: `已为“${newName.trim()}”生成密钥。`,
+      });
+    } catch (error) {
+      toast({
+        title: '创建失败',
+        description: (error as Error).message || '数据库写入失败，请检查 Supabase 配置。',
+      });
     } finally {
       setSaving(false);
     }
@@ -90,15 +113,21 @@ function AdminPanel() {
     if (!regenTarget) return;
     setSaving(true);
     try {
-      await updateSubAccountRemote(regenTarget.id, { key: generateSubKey() });
+      const nextKey = generateSubKey();
+      await updateSubAccountRemote(regenTarget.id, { key: nextKey });
       await refreshSubAccounts();
+      toast({
+        title: '密钥已重置',
+        description: `“${regenTarget.name}” 的旧密钥已失效。`,
+      });
+    } catch (error) {
+      toast({
+        title: '重置失败',
+        description: (error as Error).message || `“${regenTarget.name}” 的密钥未能写入数据库。`,
+      });
     } finally {
       setSaving(false);
     }
-    toast({
-      title: '密钥已重置',
-      description: `“${regenTarget.name}” 的旧密钥已失效。`,
-    });
     setRegenTarget(null);
   };
 
@@ -106,11 +135,22 @@ function AdminPanel() {
     if (!selectedSub) return;
     setSaving(true);
     try {
+      const nextPhones = assignMode === 'phones' ? phoneSelections : selectedSub.assignedPhoneIds;
+      const nextAccounts = assignMode === 'accounts' ? accountSelections : selectedSub.assignedAccountIds;
       await updateSubAccountRemote(selectedSub.id, {
-        assignedPhoneIds: assignMode === 'phones' ? phoneSelections : selectedSub.assignedPhoneIds,
-        assignedAccountIds: assignMode === 'accounts' ? accountSelections : selectedSub.assignedAccountIds,
+        assignedPhoneIds: nextPhones,
+        assignedAccountIds: nextAccounts,
       });
       await refreshSubAccounts();
+      toast({
+        title: '分配已保存',
+        description: `“${selectedSub.name}” 的资源分配已更新。`,
+      });
+    } catch (error) {
+      toast({
+        title: '保存失败',
+        description: (error as Error).message || `“${selectedSub.name}” 的资源分配未能写入数据库。`,
+      });
     } finally {
       setSaving(false);
     }
@@ -128,6 +168,20 @@ function AdminPanel() {
         <div className="tool-sidebar w-72 flex flex-col overflow-y-auto shrink-0">
           {/* Create form */}
           <div className="p-4 border-b border-[#dbe2e9]">
+            <div className="mb-3 flex items-center justify-between text-[10px]">
+              <span className="text-muted-foreground">子账号数据源</span>
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 font-medium',
+                  syncStatus === 'ok' && 'bg-green-50 text-green-700',
+                  syncStatus === 'syncing' && 'bg-blue-50 text-blue-700',
+                  syncStatus === 'offline' && 'bg-amber-50 text-amber-700',
+                  syncStatus === 'idle' && 'border border-[#dbe2e9] bg-white text-muted-foreground'
+                )}
+              >
+                {syncStatus === 'ok' ? '已同步' : syncStatus === 'syncing' ? '同步中' : syncStatus === 'offline' ? '数据库离线' : '待同步'}
+              </span>
+            </div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">新建子账号</p>
             <input
               className="tool-input h-8 px-3 text-sm mb-2"
@@ -177,6 +231,15 @@ function AdminPanel() {
                           await deleteSubAccountRemote(sub.id);
                           await refreshSubAccounts();
                           if (selectedSub?.id === sub.id) setSelectedSub(null);
+                          toast({
+                            title: '子账号已删除',
+                            description: `“${sub.name}” 已移除。`,
+                          });
+                        } catch (error) {
+                          toast({
+                            title: '删除失败',
+                            description: (error as Error).message || `“${sub.name}” 未能从数据库删除。`,
+                          });
                         } finally {
                           setSaving(false);
                         }
