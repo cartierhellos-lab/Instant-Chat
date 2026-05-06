@@ -7,6 +7,7 @@ import { translateText } from '@/api/translate';
 import BroadcastDialog from '@/components/BroadcastDialog';
 import type { Conversation, SmsMessage } from '@/lib/index';
 import { toast } from '@/hooks/use-toast';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // ─── 时间格式化 ──────────────────────────────────────────────────────────────
 function formatMsgTime(iso: string): string {
@@ -138,6 +139,7 @@ function ChatPanel({ conv }: { conv: Conversation }) {
   const [translated, setTranslated] = useState('');
   const [translating, setTranslating] = useState(false);
   const [translateEngine, setTranslateEngine] = useState('');
+  const [langOpen, setLangOpen] = useState(false);
   const [inboundTranslations, setInboundTranslations] = useState<Record<string, string>>({});
   const [translatingIds, setTranslatingIds] = useState<Record<string, boolean>>({});
   const [selectedImage, setSelectedImage] = useState<{ name: string; url: string } | null>(null);
@@ -320,24 +322,6 @@ function ChatPanel({ conv }: { conv: Conversation }) {
       {/* 输入区 */}
       <div className="tool-toolbar px-3 py-2 shrink-0">
         <div className="flex items-center gap-2 mb-1.5">
-          <button
-            onClick={() => setTranslateOn(!translateOn)}
-            className={cn(
-              'inline-flex items-center gap-1 px-2 h-5 rounded-[6px] text-[10px] font-medium transition border',
-              translateOn ? 'bg-[linear-gradient(180deg,#3683ec_0%,#276bcc_100%)] text-white border-transparent' : 'bg-white text-muted-foreground border-[#cdd4dc] hover:border-primary hover:text-primary'
-            )}
-          >
-            <Languages size={10} /> 翻译
-          </button>
-          {translateOn && (
-            <select
-              value={targetLang}
-              onChange={e => setTargetLang(e.target.value)}
-              className="tool-input h-5 px-1.5 text-[10px]"
-            >
-              {LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
-            </select>
-          )}
           <input
             ref={fileInputRef}
             type="file"
@@ -361,6 +345,46 @@ function ChatPanel({ conv }: { conv: Conversation }) {
           >
             <Smile size={11} />
           </button>
+          <Popover open={langOpen} onOpenChange={setLangOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                onClick={() => setTranslateOn(true)}
+                className={cn(
+                  'inline-flex items-center justify-center w-5 h-5 rounded-[6px] transition border',
+                  translateOn
+                    ? 'bg-[linear-gradient(180deg,#3683ec_0%,#276bcc_100%)] text-white border-transparent'
+                    : 'bg-white text-muted-foreground border-[#cdd4dc] hover:border-primary hover:text-primary'
+                )}
+                title="翻译语言"
+              >
+                <Languages size={11} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" side="top" className="w-44 p-1">
+              <div className="max-h-56 overflow-y-auto">
+                {LANGS.map((lang) => (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => {
+                      setTranslateOn(true);
+                      setTargetLang(lang.code);
+                      setLangOpen(false);
+                    }}
+                    className={cn(
+                      'flex w-full items-center rounded-[8px] px-2 py-1.5 text-left text-[11px] transition',
+                      targetLang === lang.code
+                        ? 'bg-primary text-white'
+                        : 'text-foreground hover:bg-accent'
+                    )}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           <span className="ml-auto text-[9px] text-muted-foreground">Enter 发送 · Shift+Enter 换行</span>
         </div>
         {selectedImage && (

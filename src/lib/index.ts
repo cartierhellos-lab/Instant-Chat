@@ -65,6 +65,10 @@ export interface AppSettings {
   ollamaUrl?: string;
   /** Ollama 翻译模型名，默认 qwen2:7b */
   ollamaModel?: string;
+  /** 是否显示顶部公告滚动栏 */
+  marqueeEnabled?: boolean;
+  /** 公告滚动一轮时长（秒） */
+  marqueeDuration?: number;
 }
 
 export interface CommunityRoom {
@@ -247,6 +251,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   translateEngine: 'mymemory',
   ollamaUrl: 'http://localhost:11434',
   ollamaModel: 'qwen2:7b',
+  marqueeEnabled: true,
+  marqueeDuration: 60,
 };
 
 const SHARED_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -299,6 +305,8 @@ export function getSharedSettings(): Partial<AppSettings> {
     translateEngine: readCookie('cm_translate_engine') === 'ollama' ? 'ollama' : DEFAULT_SETTINGS.translateEngine,
     ollamaUrl: readCookie('cm_ollama_url') ?? DEFAULT_SETTINGS.ollamaUrl,
     ollamaModel: readCookie('cm_ollama_model') ?? DEFAULT_SETTINGS.ollamaModel,
+    marqueeEnabled: readCookie('cm_marquee_enabled') !== 'false',
+    marqueeDuration: Number(readCookie('cm_marquee_duration')) || DEFAULT_SETTINGS.marqueeDuration,
   };
 }
 
@@ -310,6 +318,8 @@ export function syncSharedSettings(settings: AppSettings): void {
   writeSharedCookie('cm_translate_engine', settings.translateEngine ?? 'mymemory');
   writeSharedCookie('cm_ollama_url', settings.ollamaUrl ?? DEFAULT_SETTINGS.ollamaUrl ?? '');
   writeSharedCookie('cm_ollama_model', settings.ollamaModel ?? DEFAULT_SETTINGS.ollamaModel ?? '');
+  writeSharedCookie('cm_marquee_enabled', String(settings.marqueeEnabled ?? true));
+  writeSharedCookie('cm_marquee_duration', String(settings.marqueeDuration ?? DEFAULT_SETTINGS.marqueeDuration ?? 60));
 }
 
 // ============================================================

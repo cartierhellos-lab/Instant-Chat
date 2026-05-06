@@ -227,12 +227,16 @@ export default function Layout() {
         </div>
       </header>
 
-      <div className="marquee-bar shrink-0">
-        <div className="marquee-track">
-          <span>{marqueeNotice}</span>
-          <span aria-hidden="true">{marqueeNotice}</span>
+      {settings.marqueeEnabled !== false && marqueeNotice.trim() && (
+        <div className="marquee-bar shrink-0">
+          <div
+            className="marquee-track"
+            style={{ ['--marquee-duration' as string]: `${Math.max(15, settings.marqueeDuration ?? 60)}s` }}
+          >
+            <span>{marqueeNotice}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── 内容区 ─────────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">

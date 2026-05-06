@@ -11,6 +11,8 @@ import {
   createSubAccount as createSubAccountRemote,
   updateSubAccount as updateSubAccountRemote,
   deleteSubAccount as deleteSubAccountRemote,
+  ensureCommunityRoom,
+  updateCommunityRoom,
 } from '@/api/supabase';
 import type { SubAccount } from '@/lib/index';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -356,12 +358,36 @@ export default function SettingsPage() {
   const [sbTestResult, setSbTestResult] = useState<'idle' | 'ok' | 'fail'>('idle');
   const [sbTestMsg, setSbTestMsg] = useState('');
   const [sbSaved, setSbSaved] = useState(false);
+  const [marqueeEnabled, setMarqueeEnabled] = useState(settings.marqueeEnabled ?? true);
+  const [marqueeDuration, setMarqueeDuration] = useState(settings.marqueeDuration ?? 60);
+  const [marqueeNotice, setMarqueeNotice] = useState('');
+  const [marqueeSaving, setMarqueeSaving] = useState(false);
 
   useEffect(() => {
     setApiKey(settings.apiKey);
     setRegion(settings.apiRegion);
     setPollInterval(settings.pollInterval);
+    setMarqueeEnabled(settings.marqueeEnabled ?? true);
+    setMarqueeDuration(settings.marqueeDuration ?? 60);
   }, [settings]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const room = await ensureCommunityRoom();
+        if (!cancelled) {
+          setMarqueeNotice(room.marqueeNotice ?? '');
+        }
+      } catch {
+        // keep local field
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleTest = async () => {
     if (!apiKey) return;
@@ -388,6 +414,8 @@ export default function SettingsPage() {
       translateEngine,
       ollamaUrl: ollamaUrl.trim() || 'http://localhost:11434',
       ollamaModel: ollamaModel.trim() || 'qwen2:7b',
+      marqueeEnabled,
+      marqueeDuration: Math.max(15, Math.min(180, marqueeDuration)),
     };
     updateSettings(nextSettings);
     syncSharedSettings({
@@ -426,6 +454,22 @@ export default function SettingsPage() {
       setSbTestMsg((e as Error).message);
     } finally {
       setSbTesting(false);
+    }
+  };
+
+  const handleMarqueeSave = async () => {
+    setMarqueeSaving(true);
+    try {
+      const room = await ensureCommunityRoom();
+      await updateCommunityRoom(room.id, {
+        marqueeNotice: marqueeNotice.trim(),
+      });
+      toast({
+        title: '公告已更新',
+        description: '顶部滚动公告内容已保存。',
+      });
+    } finally {
+      setMarqueeSaving(false);
     }
   };
 
@@ -572,6 +616,63 @@ export default function SettingsPage() {
               </div>
             )}
             {translateEngine === 'mymemory' && <p className="text-[10px] text-muted-foreground">MyMemory 免费在线翻译，支持 50+ 语言，每天约 5000 次调用限额</p>}
+          </section>
+
+          <section className="tool-panel p-4 space-y-3">
+            <div className="flex items-center gap-1.5 pb-2 border-b border-[#ebebeb]">
+              <Languages className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-[11px] font-semibold">公告滚动栏</span>
+            </div>
+            <label className="flex items-center justify-between rounded-[10px] border border-[#dbe2e9] bg-white px-3 py-2">
+              <div>
+                <p className="text-[11px] font-medium text-foreground">显示顶部公告栏</p>
+                <p className="text-[10px] text-muted-foreground">关闭后不显示滚动公告，也不播放对应提示</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={marqueeEnabled}
+                onChange={(event) => setMarqueeEnabled(event.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+            </label>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium text-muted-foreground">
+                滚动一轮时长：<span className="font-mono text-primary">{Math.max(15, marqueeDuration)}s</span>
+              </label>
+              <input
+                type="range"
+                min={15}
+                max={180}
+                step={5}
+                value={marqueeDuration}
+                onChange={(event) => setMarqueeDuration(Number(event.target.value))}
+                className="w-full accent-primary"
+                style={{ height: '4px' }}
+              />
+              <div className="flex justify-between text-[9px] text-muted-foreground">
+                <span>15s 较快</span>
+                <span>60s 推荐</span>
+                <span>180s 较慢</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-medium text-muted-foreground">公告内容</label>
+              <textarea
+                value={marqueeNotice}
+                onChange={(event) => setMarqueeNotice(event.target.value)}
+                className="tool-textarea min-h-20 px-3 py-2 text-[12px]"
+                placeholder="输入顶部滚动公告内容"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={handleMarqueeSave}
+                disabled={marqueeSaving}
+                className="tool-btn h-7 px-3 text-[10px] disabled:opacity-40"
+              >
+                {marqueeSaving ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                保存公告内容
+              </button>
+            </div>
           </section>
 
           {/* Supabase */}
