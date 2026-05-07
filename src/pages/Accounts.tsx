@@ -2,16 +2,25 @@ import { useState, useRef } from 'react';
 import { Upload, Users, Trash2, RefreshCw, Search, Download, CheckSquare, Square, Zap, AlertCircle, Check, Terminal } from 'lucide-react';
 import { useAccountStore, useChatStore, useSettingsStore } from '@/hooks/useStore';
 import { parseTxtAccounts } from '@/api/duoplus';
-import { cn, statusLabel, formatTime, DEFAULT_ADB_TEMPLATE } from '@/lib/index';
+import { cn, formatTime, DEFAULT_ADB_TEMPLATE } from '@/lib/index';
 import type { AccountStatus, TextNowAccount } from '@/lib/index';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { toast } from '@/hooks/use-toast';
 
 const STATUS_FILTERS: { label: string; value: AccountStatus | 'all' }[] = [
-  { label: '全部', value: 'all' }, { label: '可用', value: 'available' },
-  { label: '已分配', value: 'assigned' }, { label: '活跃', value: 'active' },
-  { label: '已封禁', value: 'banned' }, { label: '冷却中', value: 'cooling' },
+  { label: 'All', value: 'all' }, { label: 'Available', value: 'available' },
+  { label: 'Assigned', value: 'assigned' }, { label: 'Active', value: 'active' },
+  { label: 'Banned', value: 'banned' }, { label: 'Cooling', value: 'cooling' },
 ];
+
+const ACCOUNT_STATUS_LABELS: Record<AccountStatus, string> = {
+  available: 'Available',
+  assigned: 'Assigned',
+  active: 'Active',
+  banned: 'Banned',
+  cooling: 'Cooling',
+  injecting: 'ADB Injecting',
+};
 
 // ─── 状态配色 ─────────────────────────────────────────────────────────────────
 function statusChipClass(status: AccountStatus): string {
@@ -51,40 +60,40 @@ function ImportPanel({ onImported }: { onImported: (added: number, dup: number) 
   };
 
   return (
-    <div className="ios-card p-3 space-y-2.5">
+    <div className="tool-panel rounded-[10px] p-3 space-y-2.5">
       <div className="flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-[#1c1c1e]">批量导入</span>
-        <button onClick={() => fileRef.current?.click()} className="tool-btn tool-btn-quiet h-6 px-2.5 text-[11px]">
-          <Upload className="w-3 h-3" />选择 TXT
+        <span className="text-[12px] font-semibold text-[#1f2328]">Batch Import</span>
+        <button onClick={() => fileRef.current?.click()} className="tool-btn tool-btn-quiet h-6 px-2 text-[10px]">
+          <Upload className="w-3 h-3" />Choose TXT
         </button>
         <input ref={fileRef} type="file" accept=".txt" className="hidden" onChange={handleFile} />
       </div>
 
-      <div className="rounded-[8px] bg-[#f2f2f7] p-2.5 text-[10px] text-[#8e8e93] font-mono space-y-0.5">
-        <p className="font-semibold text-[#1c1c1e] text-[11px]">5字段格式（每行一个账号）</p>
-        <p>手机号 | 用户名 | 密码 | 注册邮箱 | 邮箱密码</p>
-        <p className="text-[#007aff]/80">+15551234567 | user | Pass@123 | u@gmail.com | gmailP</p>
+      <div className="rounded-[7px] border border-[#e3e6eb] bg-[#f6f7f9] p-2 text-[10px] text-[#6b7280] font-mono space-y-0.5">
+        <p className="font-semibold text-[#1f2328] text-[10px]">5-field format, one account per line</p>
+        <p>Phone | Username | Password | Email | Email Password</p>
+        <p className="text-[#2563eb]/80">+15551234567 | user | Pass@123 | u@gmail.com | gmailP</p>
       </div>
 
       <textarea
         value={text}
         onChange={e => setText(e.target.value)}
-        placeholder="粘贴账号数据或选择 TXT 文件…"
+        placeholder="Paste account data or choose a TXT file…"
         rows={5}
-        className="tool-textarea px-2.5 py-1.5 text-[11px] font-mono placeholder:text-[#c7c7cc]"
+        className="tool-textarea px-2.5 py-1.5 text-[11px] font-mono placeholder:text-[#9ca3af]"
       />
 
       <div className="flex items-center gap-2">
         <button
           onClick={handleParse}
           disabled={!text.trim()}
-          className="ios-btn ios-btn-primary h-7 px-3 text-[12px] disabled:opacity-40"
+          className="tool-btn h-6 px-2 text-[10px] disabled:opacity-40"
         >
-          <Download className="w-3 h-3" />解析并导入
+          <Download className="w-3 h-3" />Parse & Import
         </button>
         {result && (
-          <span className={cn('text-[11px]', result.added > 0 ? 'text-[#34c759]' : 'text-[#8e8e93]')}>
-            ✓ 新增 {result.added}，重复 {result.duplicate}
+          <span className={cn('text-[10px]', result.added > 0 ? 'text-[#1f8f4d]' : 'text-[#6b7280]')}>
+            ✓ Added {result.added}, duplicates {result.duplicate}
           </span>
         )}
       </div>
@@ -105,17 +114,17 @@ function AdbTemplatePanel() {
   };
 
   return (
-    <div className="ios-card p-3 space-y-2.5">
+    <div className="tool-panel rounded-[10px] p-3 space-y-2.5">
       <div className="flex items-center gap-1.5">
-        <Terminal className="w-3.5 h-3.5 text-[#8e8e93]" />
-        <span className="text-[13px] font-semibold text-[#1c1c1e]">ADB 命令模板</span>
+        <Terminal className="w-3.5 h-3.5 text-[#6b7280]" />
+        <span className="text-[12px] font-semibold text-[#1f2328]">ADB Template</span>
       </div>
-      <p className="text-[10px] text-[#8e8e93] leading-relaxed">
-        变量：<code className="text-[#007aff]">{'{phone}'}</code>{' '}
-        <code className="text-[#007aff]">{'{username}'}</code>{' '}
-        <code className="text-[#007aff]">{'{password}'}</code>{' '}
-        <code className="text-[#007aff]">{'{email}'}</code>{' '}
-        <code className="text-[#007aff]">{'{emailPassword}'}</code>
+      <p className="text-[10px] text-[#6b7280] leading-relaxed">
+        Variables: <code className="text-[#2563eb]">{'{phone}'}</code>{' '}
+        <code className="text-[#2563eb]">{'{username}'}</code>{' '}
+        <code className="text-[#2563eb]">{'{password}'}</code>{' '}
+        <code className="text-[#2563eb]">{'{email}'}</code>{' '}
+        <code className="text-[#2563eb]">{'{emailPassword}'}</code>
       </p>
       <textarea
         value={tpl}
@@ -124,11 +133,11 @@ function AdbTemplatePanel() {
         className="tool-textarea px-2.5 py-1.5 text-[10px] font-mono"
       />
       <div className="flex items-center gap-2">
-        <button onClick={handleSave} className="tool-btn tool-btn-quiet h-6 px-2.5 text-[11px] font-medium">
-          {saved ? <><Check className="w-3 h-3 text-[#34c759]" />已保存</> : '保存模板'}
+        <button onClick={handleSave} className="tool-btn tool-btn-quiet h-6 px-2 text-[10px] font-medium">
+          {saved ? <><Check className="w-3 h-3 text-[#1f8f4d]" />Saved</> : 'Save Template'}
         </button>
-        <button onClick={() => setTpl(DEFAULT_ADB_TEMPLATE)} className="text-[11px] text-[#007aff] hover:underline">
-          恢复默认
+        <button onClick={() => setTpl(DEFAULT_ADB_TEMPLATE)} className="text-[10px] text-[#2563eb] hover:underline">
+          Reset
         </button>
       </div>
     </div>
@@ -177,26 +186,26 @@ export default function Accounts() {
     deleteSelected([...selected]);
     setSelected(new Set());
     setDeleteConfirmOpen(false);
-    toast({ title: '账号已删除', description: `已删除 ${selected.size} 个账号。` });
-    setStatusMsg(`已删除 ${selected.size} 个账号`);
+    toast({ title: 'Accounts deleted', description: `Deleted ${selected.size} account(s).` });
+    setStatusMsg(`Deleted ${selected.size} account(s)`);
   };
 
   const handleInject = async (acc: TextNowAccount) => {
     if (!settings.apiKey) {
-      toast({ title: '缺少 API Key', description: '请先在设置中配置 CartierMiller API Key。', variant: 'destructive' });
-      setStatusMsg('请先配置 API Key');
+      toast({ title: 'Missing API Key', description: 'Configure the CartierMiller API Key in Settings first.', variant: 'destructive' });
+      setStatusMsg('Configure the API Key first');
       return;
     }
     if (!acc.assignedPhoneId) {
-      toast({ title: '无法注入账号', description: '该账号尚未绑定设备。', variant: 'destructive' });
-      setStatusMsg('账号未绑定设备');
+      toast({ title: 'Cannot inject account', description: 'This account is not bound to a device yet.', variant: 'destructive' });
+      setStatusMsg('Account is not bound to a device');
       return;
     }
     setInjectingId(acc.id);
     const r = await injectAccount(acc.assignedPhoneId, acc.id, settings.apiKey, settings.apiRegion, settings.adbCommandTemplate);
     setInjectingId(null);
-    toast({ title: r.success ? '注入成功' : '注入失败', description: r.message, variant: r.success ? 'default' : 'destructive' });
-    setStatusMsg(r.success ? '注入成功' : r.message);
+    toast({ title: r.success ? 'Injection succeeded' : 'Injection failed', description: r.message, variant: r.success ? 'default' : 'destructive' });
+    setStatusMsg(r.success ? 'Injection succeeded' : r.message);
   };
 
   const stats = {
@@ -207,54 +216,55 @@ export default function Accounts() {
 
   return (
     <>
-      <div className="flex flex-col h-full w-full overflow-hidden bg-[#f2f2f7]">
-        {/* 工具栏 */}
-        <div className="tool-toolbar h-11 px-4 flex items-center gap-2 shrink-0">
-          <span className="text-[17px] font-semibold text-[#1c1c1e] flex-1">账号管理</span>
-          <span className="text-[13px] text-[#8e8e93]">
-            {accounts.length} 个 · 可用 {stats.available} · 封禁 {stats.banned}
-          </span>
+      <div className="flex flex-col h-full w-full overflow-hidden bg-[#f3f4f6]">
+        <div className="tool-toolbar h-10 px-3 flex items-center gap-2 shrink-0">
+          <div className="flex flex-1 items-center gap-2 min-w-0">
+            <Users className="h-4 w-4 text-[#2563eb]" />
+            <span className="text-[13px] font-semibold tracking-[0.01em] text-[#1f2328]">Accounts</span>
+            <span className="tool-chip text-[10px]">
+              {accounts.length} total · {stats.available} available · {stats.banned} banned
+            </span>
+          </div>
           {statusMsg && (
-            <span className="text-[12px] text-[#8e8e93] border-l border-[#e5e5ea] pl-2">{statusMsg}</span>
+            <span className="hidden sm:inline text-[10px] text-[#6b7280] border-l border-[#d7dbe2] pl-2 truncate max-w-[220px]">{statusMsg}</span>
           )}
           {selected.size > 0 && (
             <button
               onClick={handleDeleteSelected}
-              className="ios-btn ios-btn-destructive h-7 px-3 text-[12px]"
+              className="tool-btn h-6 px-2 text-[10px] text-[#ef4444]"
             >
-              <Trash2 className="w-3.5 h-3.5" />删除 {selected.size} 个
+              <Trash2 className="w-3.5 h-3.5" />Delete {selected.size}
             </button>
           )}
         </div>
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* 左边栏 */}
-          <div className="tool-sidebar w-64 shrink-0 h-full overflow-y-auto px-3 py-3 space-y-3 bg-[#f2f2f7]">
-            <ImportPanel onImported={(a, d) => setImportMsg(`导入 ${a} 个，重复 ${d} 个`)} />
+          <div className="tool-sidebar w-64 shrink-0 h-full overflow-y-auto px-3 py-3 space-y-2.5 bg-[#eef1f4]">
+            <ImportPanel onImported={(a, d) => setImportMsg(`Imported ${a}, duplicates ${d}`)} />
             {importMsg && (
-              <div className="flex items-center gap-1.5 text-[12px] text-[#34c759] bg-[#34c759]/8 border border-[#34c759]/20 rounded-[8px] px-3 py-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] text-[#1f8f4d] bg-[#eef8f1] border border-[#bfdac8] rounded-[7px] px-2.5 py-1.5">
                 <Check className="w-3.5 h-3.5 shrink-0" />{importMsg}
               </div>
             )}
 
-            {/* 统计卡 */}
-            <div className="ios-card p-3 space-y-1.5">
-              <p className="text-[11px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-2">账号统计</p>
+            <div className="tool-panel rounded-[10px] p-3 space-y-1.5">
+              <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider mb-2">Account Stats</p>
               {[
-                { label: '可用账号', count: stats.available, dotCls: 'ios-dot-online' },
-                { label: '已分配/活跃', count: stats.assigned, dotCls: 'bg-[#007aff]' },
-                { label: '已封禁', count: stats.banned, dotCls: 'ios-dot-offline' },
+                { label: 'Available', count: stats.available, dotCls: 'ios-dot-online' },
+                { label: 'Assigned / Active', count: stats.assigned, dotCls: 'bg-[#007aff]' },
+                { label: 'Banned', count: stats.banned, dotCls: 'ios-dot-offline' },
               ].map(({ label, count, dotCls }) => (
-                <div key={label} className="ios-list-row px-0 py-0 flex items-center justify-between border-none">
+                <div key={label} className="px-0 py-0.5 flex items-center justify-between border-none">
                   <div className="flex items-center gap-2">
                     <span className={cn('ios-dot', dotCls)} />
-                    <span className="text-[13px] text-[#1c1c1e]">{label}</span>
+                    <span className="text-[12px] text-[#1f2328]">{label}</span>
                   </div>
-                  <span className="text-[13px] font-semibold text-[#1c1c1e]">{count}</span>
+                  <span className="text-[12px] font-semibold text-[#1f2328]">{count}</span>
                 </div>
               ))}
-              <p className="text-[11px] text-[#8e8e93] pt-1 border-t border-[#f2f2f7]">
-                {cloudPhones.length} 台设备 · 最大 {cloudPhones.length * 10} 个账号
+              <p className="text-[10px] text-[#6b7280] pt-1 border-t border-[#e3e6eb]">
+                {cloudPhones.length} device(s) · up to {cloudPhones.length * 10} accounts
               </p>
             </div>
 
@@ -263,15 +273,14 @@ export default function Accounts() {
 
           {/* 右侧：账号列表 */}
           <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden bg-white">
-            {/* 搜索 + 筛选栏 */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-[#f2f2f7] shrink-0 bg-white/80 backdrop-blur-sm">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-[#e3e6eb] shrink-0 bg-white">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8e8e93]" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#6b7280]" />
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="搜索手机号/用户名/邮箱…"
-                  className="tool-input h-7 pl-7 pr-3 w-48 text-[12px] placeholder:text-[#c7c7cc]"
+                  placeholder="Search phone / username / email…"
+                  className="tool-input h-7 pl-7 pr-3 w-48 text-[12px] placeholder:text-[#9ca3af]"
                 />
               </div>
               <div className="flex gap-1 flex-wrap">
@@ -280,10 +289,10 @@ export default function Accounts() {
                     key={value}
                     onClick={() => setFilter(value)}
                     className={cn(
-                      'h-6 px-2.5 rounded-full text-[11px] font-medium transition-colors border',
+                      'h-6 px-2 rounded-[6px] text-[10px] font-medium transition-colors border',
                       filter === value
-                        ? 'bg-[#007aff] text-white border-transparent'
-                        : 'bg-[#f2f2f7] border-transparent text-[#8e8e93] hover:text-[#007aff]'
+                        ? 'bg-[#2563eb] text-white border-transparent'
+                        : 'bg-[#f3f4f6] border-[#e3e6eb] text-[#6b7280] hover:text-[#2563eb]'
                     )}
                   >
                     {label}
@@ -298,24 +307,24 @@ export default function Accounts() {
                 <div className="tool-empty">
                   <AlertCircle className="w-8 h-8 text-[#c7c7cc] mb-2" />
                   <p className="text-[15px] font-medium text-[#8e8e93]">
-                    {accounts.length === 0 ? '请从左侧导入 TextNow 账号' : '无匹配结果'}
+                    {accounts.length === 0 ? 'Import TextNow accounts from the left panel' : 'No matching results'}
                   </p>
                 </div>
               ) : (
                 <table className="w-full border-collapse">
-                  <thead className="sticky top-0 bg-white/80 backdrop-blur-sm z-10">
-                    <tr className="border-b border-[#e5e5ea]">
-                      <th className="px-3 py-2 text-left w-8">
+                  <thead className="sticky top-0 bg-[#fbfbfc] z-10">
+                    <tr className="border-b border-[#d7dbe2]">
+                      <th className="px-3 py-1.5 text-left w-8">
                         <button onClick={toggleAll}>
                           {selected.size === filtered.length && filtered.length > 0
-                            ? <CheckSquare className="w-4 h-4 text-[#007aff]" />
-                            : <Square className="w-4 h-4 text-[#c7c7cc]" />}
+                            ? <CheckSquare className="w-4 h-4 text-[#2563eb]" />
+                            : <Square className="w-4 h-4 text-[#9ca3af]" />}
                         </button>
                       </th>
-                      {['手机号', '用户名', '邮箱', '状态', '绑定设备', '导入时间', '操作'].map(h => (
+                      {['Phone', 'Username', 'Email', 'Status', 'Device', 'Imported', 'Actions'].map(h => (
                         <th
                           key={h}
-                          className="px-3 py-2 text-left text-[11px] font-semibold text-[#8e8e93] uppercase tracking-[0.04em] whitespace-nowrap"
+                          className="px-3 py-1.5 text-left text-[10px] font-semibold text-[#6b7280] uppercase tracking-[0.04em] whitespace-nowrap"
                         >
                           {h}
                         </th>
@@ -329,23 +338,23 @@ export default function Accounts() {
                         <tr
                           key={acc.id}
                           className={cn(
-                            'border-b border-[#f2f2f7] transition-colors',
-                            selected.has(acc.id) ? 'bg-[#007aff]/5' : 'hover:bg-[#f9f9fb]'
+                            'border-b border-[#eef1f4] transition-colors',
+                            selected.has(acc.id) ? 'bg-[#eef5ff]' : 'hover:bg-[#f9fafb]'
                           )}
                         >
-                          <td className="px-3 py-2.5">
+                          <td className="px-3 py-1.5">
                             <button onClick={() => toggleSelect(acc.id)}>
                               {selected.has(acc.id)
-                                ? <CheckSquare className="w-4 h-4 text-[#007aff]" />
-                                : <Square className="w-4 h-4 text-[#c7c7cc]" />}
+                                ? <CheckSquare className="w-4 h-4 text-[#2563eb]" />
+                                : <Square className="w-4 h-4 text-[#9ca3af]" />}
                             </button>
                           </td>
-                          <td className="px-3 py-2.5 font-mono text-[13px] text-[#1c1c1e]">{acc.phoneNumber}</td>
-                          <td className="px-3 py-2.5 text-[13px] text-[#8e8e93] truncate max-w-[90px]">{acc.username}</td>
-                          <td className="px-3 py-2.5 text-[13px] text-[#8e8e93] truncate max-w-[100px]">{acc.email}</td>
-                          <td className="px-3 py-2.5">
+                          <td className="px-3 py-1.5 font-mono text-[12px] text-[#1f2328]">{acc.phoneNumber}</td>
+                          <td className="px-3 py-1.5 text-[12px] text-[#6b7280] truncate max-w-[90px]">{acc.username}</td>
+                          <td className="px-3 py-1.5 text-[12px] text-[#6b7280] truncate max-w-[100px]">{acc.email}</td>
+                          <td className="px-3 py-1.5">
                             <span className={cn(
-                              'inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border',
+                              'inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-[6px] border',
                               statusChipClass(acc.status)
                             )}>
                               <span className={cn(
@@ -355,39 +364,39 @@ export default function Accounts() {
                                 : acc.status === 'active' ? 'bg-[#007aff]'
                                 : 'bg-[#8e8e93]'
                               )} />
-                              {statusLabel(acc.status)}
+                              {ACCOUNT_STATUS_LABELS[acc.status]}
                             </span>
                           </td>
-                          <td className="px-3 py-2.5">
+                          <td className="px-3 py-1.5">
                             {phone
-                              ? <span className="font-mono text-[11px] text-[#007aff]">{phone.name || phone.id} #{(acc.slotIndex ?? 0) + 1}</span>
-                              : <span className="text-[#c7c7cc]">—</span>}
+                              ? <span className="font-mono text-[10px] text-[#2563eb]">{phone.name || phone.id} #{(acc.slotIndex ?? 0) + 1}</span>
+                              : <span className="text-[#9ca3af]">—</span>}
                           </td>
-                          <td className="px-3 py-2.5 text-[12px] text-[#8e8e93] font-mono">{formatTime(acc.importedAt)}</td>
-                          <td className="px-3 py-2.5">
+                          <td className="px-3 py-1.5 text-[11px] text-[#6b7280] font-mono">{formatTime(acc.importedAt)}</td>
+                          <td className="px-3 py-1.5">
                             <div className="flex items-center gap-1">
                               {acc.assignedPhoneId && (
                                 <button
                                   onClick={() => handleInject(acc)}
                                   disabled={injectingId === acc.id}
-                                  className="tool-btn tool-btn-quiet h-6 px-2 text-[11px] disabled:opacity-40"
+                                  className="tool-btn tool-btn-quiet h-6 px-2 text-[10px] disabled:opacity-40"
                                 >
                                   {injectingId === acc.id
                                     ? <RefreshCw className="w-3 h-3 animate-spin" />
                                     : <Zap className="w-3 h-3" />}
-                                  {injectingId === acc.id ? '注入中…' : '注入'}
+                                  {injectingId === acc.id ? 'Injecting…' : 'Inject'}
                                 </button>
                               )}
                               {acc.status !== 'banned' ? (
                                 <button
                                   onClick={() => markBanned(acc.id)}
-                                  className="h-6 px-2 rounded-[6px] border border-[#e5e5ea] text-[11px] text-[#8e8e93] hover:border-[#ff3b30] hover:text-[#ff3b30] transition-colors"
-                                >封禁</button>
+                                  className="h-6 px-2 rounded-[6px] border border-[#d7dbe2] text-[10px] text-[#6b7280] hover:border-[#ef4444] hover:text-[#ef4444] transition-colors"
+                                >Ban</button>
                               ) : (
                                 <button
                                   onClick={() => updateAccount(acc.id, { status: 'available', bannedAt: undefined })}
-                                  className="h-6 px-2 rounded-[6px] border border-[#e5e5ea] text-[11px] text-[#8e8e93] hover:border-[#34c759] hover:text-[#34c759] transition-colors"
-                                >恢复</button>
+                                  className="h-6 px-2 rounded-[6px] border border-[#d7dbe2] text-[10px] text-[#6b7280] hover:border-[#1f8f4d] hover:text-[#1f8f4d] transition-colors"
+                                >Restore</button>
                               )}
                             </div>
                           </td>
@@ -405,10 +414,10 @@ export default function Accounts() {
       <ConfirmDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
-        title="删除选中账号？"
-        description={`该操作会删除当前选中的 ${selected.size} 个账号，且无法恢复。`}
-        confirmText="确认删除"
-        cancelText="取消"
+        title="Delete selected accounts?"
+        description={`This will delete the selected ${selected.size} account(s), and it cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
         destructive
         onConfirm={confirmDeleteSelected}
       />

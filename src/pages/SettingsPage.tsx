@@ -18,7 +18,7 @@ import type { SubAccount } from '@/lib/index';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { toast } from '@/hooks/use-toast';
 
-// ─── 管理员 Tab 内容（原 Admin.tsx 功能）──────────────────────────────────────
+// Admin tab content (restored from the original Admin.tsx behavior)
 function AdminPanel() {
   const { subAccounts, setSubAccounts } = useAdminStore();
   const { cloudPhones } = useChatStore();
@@ -49,7 +49,7 @@ function AdminPanel() {
       setSyncStatus('ok');
     } catch (error) {
       setSyncStatus('offline');
-      toast({ title: '同步子账号失败', description: (error as Error).message || '数据库暂时不可用，请检查 Supabase 配置。' });
+      toast({ title: 'Sub-account sync failed', description: (error as Error).message || 'The database is unavailable right now. Check the Supabase configuration.' });
     }
   }, [selectedSub, setSubAccounts]);
 
@@ -81,9 +81,9 @@ function AdminPanel() {
         note: newNote.trim() || undefined,
       });
       await refreshSubAccounts();
-      toast({ title: '子账号已创建', description: `已为"${newName.trim()}"生成密钥。` });
+      toast({ title: 'Sub-account created', description: `A new access key was generated for "${newName.trim()}".` });
     } catch (error) {
-      toast({ title: '创建失败', description: (error as Error).message || '数据库写入失败，请检查 Supabase 配置。' });
+      toast({ title: 'Create failed', description: (error as Error).message || 'Database write failed. Check the Supabase configuration.' });
     } finally {
       setSaving(false);
     }
@@ -100,9 +100,9 @@ function AdminPanel() {
       const nextKey = generateSubKey();
       await updateSubAccountRemote(regenTarget.id, { key: nextKey });
       await refreshSubAccounts();
-      toast({ title: '密钥已重置', description: `"${regenTarget.name}" 的新密钥已生成。` });
+      toast({ title: 'Key regenerated', description: `A new key was generated for "${regenTarget.name}".` });
     } catch (error) {
-      toast({ title: '重置失败', description: (error as Error).message || '数据库写入失败。' });
+      toast({ title: 'Reset failed', description: (error as Error).message || 'Database write failed.' });
     } finally {
       setSaving(false);
       setRegenTarget(null);
@@ -118,9 +118,9 @@ function AdminPanel() {
         assignedAccountIds: accountSelections,
       });
       await refreshSubAccounts();
-      toast({ title: '分配已保存', description: `"${selectedSub.name}" 的资源分配已更新。` });
+      toast({ title: 'Assignments saved', description: `Resource assignments for "${selectedSub.name}" were updated.` });
     } catch (error) {
-      toast({ title: '保存失败', description: (error as Error).message || `"${selectedSub.name}" 的资源分配未能写入数据库。` });
+      toast({ title: 'Save failed', description: (error as Error).message || `Assignments for "${selectedSub.name}" could not be written to the database.` });
     } finally {
       setSaving(false);
     }
@@ -132,24 +132,23 @@ function AdminPanel() {
   };
 
   const syncChipCls = {
-    ok:      'bg-[#34c759]/10 text-[#34c759]',
-    syncing: 'bg-[#007aff]/10 text-[#007aff]',
-    offline: 'bg-[#ff9500]/10 text-[#ff9500]',
-    idle:    'bg-[#f2f2f7] text-[#8e8e93]',
+    ok: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+    syncing: 'border border-sky-200 bg-sky-50 text-sky-700',
+    offline: 'border border-amber-200 bg-amber-50 text-amber-700',
+    idle: 'border border-slate-200 bg-slate-100 text-slate-500',
   }[syncStatus];
 
   return (
     <>
-      <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* 左：新建 + 列表 */}
-        <div className="tool-sidebar w-72 flex flex-col overflow-y-auto shrink-0 bg-[#f2f2f7]">
-          {/* 新建表单 */}
-          <div className="p-4 border-b border-[#e5e5ea] bg-white">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] text-[#8e8e93]">子账号数据源</span>
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <div className="w-80 shrink-0 border-r border-slate-200 bg-slate-50/70">
+          <div className="flex h-full flex-col overflow-hidden">
+            <div className="border-b border-slate-200 bg-white px-4 py-3">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">Sub-account source</span>
               <div className="flex items-center gap-2">
                 <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium', syncChipCls)}>
-                  {syncStatus === 'ok' ? '已同步' : syncStatus === 'syncing' ? '同步中' : syncStatus === 'offline' ? '数据库离线' : '待同步'}
+                  {syncStatus === 'ok' ? 'Synced' : syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'offline' ? 'Database offline' : 'Idle'}
                 </span>
                 <button
                   type="button"
@@ -158,46 +157,45 @@ function AdminPanel() {
                   className="tool-btn tool-btn-quiet h-6 px-2 text-[11px] disabled:opacity-40"
                 >
                   <RefreshCw size={11} className={cn(syncStatus === 'syncing' && 'animate-spin')} />
-                  同步
+                  Sync
                 </button>
               </div>
             </div>
 
-            <p className="text-[11px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-2">新建子账号</p>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Create sub-account</p>
             <input
               className="tool-input h-8 px-3 text-[13px] mb-2"
-              placeholder="子账号名称（必填）"
+              placeholder="Sub-account name (required)"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
             />
             <input
               className="tool-input h-8 px-3 text-[13px] mb-3"
-              placeholder="备注（选填）"
+              placeholder="Notes (optional)"
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
             />
             <button
               onClick={handleCreate}
               disabled={!newName.trim() || saving}
-              className="ios-btn ios-btn-primary w-full justify-center h-8 text-[13px] disabled:opacity-40"
+              className="tool-btn tool-btn-primary h-8 w-full justify-center text-[13px] disabled:opacity-40"
             >
               {saving ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-              生成密钥
+              Generate key
             </button>
           </div>
 
-          {/* 子账号列表 */}
           <div className="flex-1 overflow-y-auto">
             {syncStatus === 'syncing' && subAccounts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 text-center px-4">
                 <RefreshCw size={22} className="text-[#c7c7cc] mb-2 animate-spin" />
-                <p className="text-[12px] text-[#8e8e93]">正在从数据库加载子账号…</p>
+                <p className="text-[12px] text-slate-500">Loading sub-accounts from the database…</p>
               </div>
             ) : subAccounts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 text-center px-4">
                 <Users size={28} className="text-[#c7c7cc] mb-2" />
                 <p className="text-[12px] text-[#8e8e93]">
-                  {syncStatus === 'offline' ? '数据库未连接，暂时无法读取子账号' : '暂无子账号'}
+                  {syncStatus === 'offline' ? 'Database offline. Sub-accounts are unavailable.' : 'No sub-accounts yet'}
                 </p>
               </div>
             ) : (
@@ -205,8 +203,8 @@ function AdminPanel() {
                 <div
                   key={sub.id}
                   className={cn(
-                    'p-3 border-b border-[#f2f2f7] cursor-pointer transition-colors',
-                    selectedSub?.id === sub.id ? 'bg-[#007aff]/5' : 'bg-white hover:bg-[#fafafa]'
+                    'cursor-pointer border-b border-slate-200 px-3 py-3 transition-colors',
+                    selectedSub?.id === sub.id ? 'bg-sky-50' : 'bg-white hover:bg-slate-50'
                   )}
                   onClick={() => setSelectedSub(sub)}
                 >
@@ -220,13 +218,13 @@ function AdminPanel() {
                           await deleteSubAccountRemote(sub.id);
                           await refreshSubAccounts();
                           if (selectedSub?.id === sub.id) setSelectedSub(null);
-                          toast({ title: '子账号已删除', description: `"${sub.name}" 已移除。` });
+                          toast({ title: 'Sub-account deleted', description: `"${sub.name}" was removed.` });
                         } catch (error) {
-                          toast({ title: '删除失败', description: (error as Error).message || `"${sub.name}" 未能从数据库删除。` });
+                          toast({ title: 'Delete failed', description: (error as Error).message || `"${sub.name}" could not be deleted from the database.` });
                         } finally {
                           setSaving(false); }
                       }}
-                      className="w-6 h-6 flex items-center justify-center rounded-full text-[#c7c7cc] hover:text-[#ff3b30] hover:bg-[#ff3b30]/10 transition-colors"
+                      className="flex h-6 w-6 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                     >
                       <Trash2 size={12} />
                     </button>
@@ -237,43 +235,42 @@ function AdminPanel() {
                     <button
                       onClick={(e) => { e.stopPropagation(); handleCopy(sub.key, sub.id + '-key'); }}
                       className="shrink-0 text-[#c7c7cc] hover:text-[#007aff] transition-colors"
-                      title="复制密钥"
+                      title="Copy key"
                     >
                       {copiedId === sub.id + '-key' ? <Check size={11} className="text-[#34c759]" /> : <Copy size={11} />}
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleRegenKey(sub); }}
                       className="shrink-0 text-[#c7c7cc] hover:text-[#ff9500] transition-colors"
-                      title="重置密钥"
+                      title="Regenerate key"
                     >
                       <RefreshCw size={11} />
                     </button>
                   </div>
                   <div className="flex gap-3 mt-1.5 text-[11px] text-[#8e8e93]">
-                    <span className="flex items-center gap-1"><Smartphone size={10} /> {sub.assignedPhoneIds.length} 台设备</span>
-                    <span className="flex items-center gap-1"><Users size={10} /> {sub.assignedAccountIds.length} 个账号</span>
+                    <span className="flex items-center gap-1"><Smartphone size={10} /> {sub.assignedPhoneIds.length} devices</span>
+                    <span className="flex items-center gap-1"><Users size={10} /> {sub.assignedAccountIds.length} accounts</span>
                   </div>
                   <p className="text-[10px] text-[#c7c7cc] mt-0.5">{formatTime(sub.createdAt)}</p>
                 </div>
               ))
             )}
           </div>
+          </div>
         </div>
 
-        {/* 右：分配面板 */}
-        <div className="flex-1 overflow-y-auto p-5 bg-[#f2f2f7]">
+        <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4 sm:p-5">
           {!selectedSub ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-3">
                 <ShieldCheck size={28} className="text-[#c7c7cc]" />
               </div>
-              <p className="text-[15px] font-medium text-[#8e8e93]">从左侧选择子账号</p>
-              <p className="text-[13px] text-[#c7c7cc] mt-1">进行设备与账号资源分配</p>
+              <p className="text-[15px] font-medium text-slate-500">Select a sub-account</p>
+              <p className="mt-1 text-[13px] text-slate-400">Assign devices and account resources from the list on the left.</p>
             </div>
           ) : (
-            <div className="space-y-4 max-w-lg">
-              {/* 选中子账号头部 */}
-              <div className="ios-card p-4 flex items-center gap-3">
+            <div className="max-w-2xl space-y-4">
+              <div className="tool-panel flex items-center gap-3 p-4">
                 <div className="w-10 h-10 rounded-[10px] bg-[#007aff]/10 flex items-center justify-center shrink-0">
                   <User size={18} className="text-[#007aff]" />
                 </div>
@@ -283,30 +280,26 @@ function AdminPanel() {
                 </div>
               </div>
 
-              {/* 分配模式切换 */}
-              <div className="flex gap-2">
+              <div className="tool-tabs inline-flex gap-1 p-1">
                 {(['phones', 'accounts'] as const).map((mode) => (
                   <button
                     key={mode}
                     onClick={() => setAssignMode(mode)}
                     className={cn(
-                      'flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-[13px] font-medium transition border',
-                      assignMode === mode
-                        ? 'bg-[#007aff] text-white border-transparent'
-                        : 'border-[#e5e5ea] bg-white text-[#8e8e93] hover:border-[#007aff] hover:text-[#007aff]'
+                      'tool-tab h-8 px-3 text-[12px] font-medium',
+                      assignMode === mode ? 'tool-tab-active' : ''
                     )}
                   >
                     {mode === 'phones' ? <Smartphone size={13} /> : <Users size={13} />}
-                    {mode === 'phones' ? '分配设备' : '分配账号'}
+                    {mode === 'phones' ? 'Assign devices' : 'Assign accounts'}
                   </button>
                 ))}
               </div>
 
-              {/* 选项列表 */}
-              <div className="ios-card overflow-hidden">
+              <div className="tool-panel overflow-hidden p-0">
                 {assignMode === 'phones' ? (
                   cloudPhones.length === 0 ? (
-                    <p className="px-4 py-3 text-[13px] text-[#8e8e93] italic">暂无设备</p>
+                    <p className="px-4 py-3 text-[13px] italic text-slate-500">No devices available</p>
                   ) : cloudPhones.map((phone, idx) => {
                     const checked = phoneSelections.includes(phone.id);
                     return (
@@ -314,8 +307,8 @@ function AdminPanel() {
                         key={phone.id}
                         className={cn(
                           'flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors',
-                          idx > 0 && 'border-t border-[#f2f2f7]',
-                          checked ? 'bg-[#007aff]/5' : 'hover:bg-[#fafafa]'
+                          idx > 0 && 'border-t border-slate-200',
+                          checked ? 'bg-sky-50' : 'hover:bg-slate-50'
                         )}
                       >
                         <input
@@ -336,7 +329,7 @@ function AdminPanel() {
                   })
                 ) : (
                   accounts.length === 0 ? (
-                    <p className="px-4 py-3 text-[13px] text-[#8e8e93] italic">暂无账号（请先在账号页导入）</p>
+                    <p className="px-4 py-3 text-[13px] italic text-slate-500">No accounts available. Import them on the Accounts page first.</p>
                   ) : accounts.slice(0, 100).map((acc, idx) => {
                     const checked = accountSelections.includes(acc.id);
                     return (
@@ -344,8 +337,8 @@ function AdminPanel() {
                         key={acc.id}
                         className={cn(
                           'flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors',
-                          idx > 0 && 'border-t border-[#f2f2f7]',
-                          checked ? 'bg-[#007aff]/5' : 'hover:bg-[#fafafa]'
+                          idx > 0 && 'border-t border-slate-200',
+                          checked ? 'bg-sky-50' : 'hover:bg-slate-50'
                         )}
                       >
                         <input
@@ -365,10 +358,10 @@ function AdminPanel() {
               <button
                 onClick={handleSaveAssign}
                 disabled={saving}
-                className="ios-btn ios-btn-primary w-full justify-center h-9 text-[14px] font-medium disabled:opacity-40"
+                className="tool-btn tool-btn-primary h-9 w-full justify-center text-[14px] font-medium disabled:opacity-40"
               >
                 {saving ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
-                保存分配
+                Save assignments
               </button>
             </div>
           )}
@@ -378,10 +371,10 @@ function AdminPanel() {
       <ConfirmDialog
         open={!!regenTarget}
         onOpenChange={(open) => !open && setRegenTarget(null)}
-        title="重置子账号密钥？"
-        description={`重置后，"${regenTarget?.name ?? ''}" 的旧密钥将立即失效。`}
-        confirmText="确认重置"
-        cancelText="取消"
+        title="Regenerate this sub-account key?"
+        description={`After regeneration, the old key for "${regenTarget?.name ?? ''}" will stop working immediately.`}
+        confirmText="Regenerate"
+        cancelText="Cancel"
         destructive
         onConfirm={confirmRegenKey}
       />
@@ -389,7 +382,7 @@ function AdminPanel() {
   );
 }
 
-// ─── 主设置页面 ───────────────────────────────────────────────────────────────
+// Main settings page
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { settings, updateSettings } = useSettingsStore();
@@ -447,7 +440,7 @@ export default function SettingsPage() {
     setTesting(true); setTestResult('idle'); setTestMsg('');
     try {
       const numbers = await fetchCloudNumbers(apiKey, region);
-      setTestResult('ok'); setTestMsg(`连接成功，共获取到 ${numbers.length} 个云号码`);
+      setTestResult('ok'); setTestMsg(`Connected successfully. Retrieved ${numbers.length} cloud numbers.`);
     } catch (e) {
       setTestResult('fail'); setTestMsg((e as Error).message);
     } finally { setTesting(false); }
@@ -500,13 +493,13 @@ export default function SettingsPage() {
     try {
       const room = await ensureCommunityRoom();
       await updateCommunityRoom(room.id, { marqueeNotice: marqueeNotice.trim() });
-      toast({ title: '公告已更新', description: '顶部滚动公告内容已保存。' });
+      toast({ title: 'Notice updated', description: 'The top scrolling notice has been saved.' });
     } finally { setMarqueeSaving(false); }
   };
 
   const isAdmin = currentRole === 'admin';
 
-  // 连接状态样式
+  // Connection state styling
   const connStatusCls = lastError
     ? 'border-[#ff3b30]/30 bg-[#ff3b30]/5 text-[#ff3b30]'
     : cloudNumbers.length > 0
@@ -514,52 +507,50 @@ export default function SettingsPage() {
       : 'border-[#e5e5ea] bg-white text-[#8e8e93]';
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden bg-[#f2f2f7]">
-      {/* 工具栏 */}
-      <div className="tool-toolbar h-11 px-4 flex items-center gap-2 shrink-0">
-        <span className="text-[17px] font-semibold text-[#1c1c1e] flex-1">设置</span>
-        <div className="flex items-center gap-1 bg-[#f2f2f7] rounded-[8px] p-0.5">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50">
+      <div className="tool-toolbar h-11 shrink-0 px-4">
+        <div className="flex flex-1 items-center gap-3">
+          <span className="text-[16px] font-semibold tracking-tight text-slate-900">Settings</span>
+          <div className="tool-tabs ml-auto flex items-center gap-1 p-1">
           {(['general', ...(isAdmin ? ['admin'] : [])] as ('general' | 'admin')[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                'flex items-center gap-1.5 h-7 px-3 rounded-[7px] text-[12px] font-medium transition-colors',
-                activeTab === tab
-                  ? 'bg-white text-[#1c1c1e] shadow-sm'
-                  : 'text-[#8e8e93] hover:text-[#1c1c1e]'
+                'tool-tab h-7 px-3 text-[12px] font-medium',
+                activeTab === tab ? 'tool-tab-active' : ''
               )}
             >
               {tab === 'admin' && <ShieldCheck size={11} />}
-              {tab === 'general' ? '常规设置' : '管理员'}
+              {tab === 'general' ? 'General' : 'Admin'}
             </button>
           ))}
+          </div>
         </div>
       </div>
 
       {activeTab === 'general' ? (
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 max-w-2xl">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+          <div className="mx-auto flex max-w-4xl flex-col gap-4 pb-6">
 
-          {/* 连接状态 banner */}
-          <div className={cn('flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] border text-[13px]', connStatusCls)}>
+          <div className={cn('flex items-center gap-2.5 rounded-[10px] border px-3 py-2.5 text-[13px]', connStatusCls)}>
             {lastError
               ? <WifiOff className="w-4 h-4 shrink-0" />
               : cloudNumbers.length > 0
                 ? <Wifi className="w-4 h-4 shrink-0" />
                 : <AlertCircle className="w-4 h-4 shrink-0" />}
             <span className="font-medium">
-              {lastError ? '连接失败' : cloudNumbers.length > 0 ? `已连接 · ${cloudNumbers.length} 个号码` : '未连接'}
+              {lastError ? 'Connection failed' : cloudNumbers.length > 0 ? `Connected · ${cloudNumbers.length} numbers` : 'Not connected'}
             </span>
             {lastError && <span className="ml-1 font-mono text-[11px] truncate">{lastError}</span>}
             {!lastError && settings.apiKey && cloudNumbers.length > 0 && (
-              <span className="ml-1 font-mono text-[11px] opacity-70">{maskApiKey(settings.apiKey)} · {settings.apiRegion === 'cn' ? '国内' : '国际'}</span>
+              <span className="ml-1 font-mono text-[11px] opacity-70">{maskApiKey(settings.apiKey)} · {settings.apiRegion === 'cn' ? 'China' : 'Global'}</span>
             )}
           </div>
 
-          {/* ── API 密钥 ── */}
           <div className="space-y-1.5">
-            <p className="ios-section-header">API 密钥</p>
-            <div className="ios-card-grouped">
+            <p className="ios-section-header">API key</p>
+            <div className="tool-panel overflow-hidden p-0">
               <div className="ios-list-row">
                 <Key className="w-4 h-4 text-[#8e8e93] shrink-0" />
                 <label className="text-[15px] text-[#1c1c1e] flex-1">CartierMiller API Key</label>
@@ -569,7 +560,7 @@ export default function SettingsPage() {
                   type="password"
                   value={apiKey}
                   onChange={e => setApiKey(e.target.value)}
-                  placeholder="粘贴 API Key…"
+                  placeholder="Paste API key…"
                   className="tool-input h-8 flex-1 px-2.5 text-[13px] font-mono placeholder:text-[#c7c7cc]"
                 />
               </div>
@@ -580,7 +571,7 @@ export default function SettingsPage() {
                   className="tool-btn tool-btn-quiet h-7 px-3 text-[12px] disabled:opacity-40"
                 >
                   {testing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
-                  {testing ? '连接中…' : '测试连接'}
+                  {testing ? 'Testing…' : 'Test connection'}
                 </button>
                 {testResult !== 'idle' && (
                   <span className={cn('flex items-center gap-1 text-[12px]', testResult === 'ok' ? 'text-[#34c759]' : 'text-[#ff3b30]')}>
@@ -592,13 +583,12 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* ── 接口配置 ── */}
           <div className="space-y-1.5">
-            <p className="ios-section-header">接口配置</p>
-            <div className="ios-card-grouped">
+            <p className="ios-section-header">Connection settings</p>
+            <div className="tool-panel overflow-hidden p-0">
               <div className="ios-list-row">
                 <Globe className="w-4 h-4 text-[#8e8e93] shrink-0" />
-                <span className="text-[15px] text-[#1c1c1e] flex-1">API 节点区域</span>
+                <span className="text-[15px] text-[#1c1c1e] flex-1">API region</span>
                 <div className="flex gap-1">
                   {(['cn', 'global'] as const).map(r => (
                     <button
@@ -611,14 +601,14 @@ export default function SettingsPage() {
                           : 'border-[#e5e5ea] text-[#8e8e93] hover:border-[#007aff] hover:text-[#007aff]'
                       )}
                     >
-                      {r === 'cn' ? '🇨🇳 国内' : '🌐 国际'}
+                      {r === 'cn' ? '🇨🇳 China' : '🌐 Global'}
                     </button>
                   ))}
                 </div>
               </div>
               <div className="ios-list-row border-t border-[#f2f2f7] flex-col items-start gap-1.5">
                 <label className="text-[13px] text-[#8e8e93]">
-                  轮询间隔：<span className="font-mono text-[#007aff]">{pollInterval}s</span>
+                  Poll interval: <span className="font-mono text-[#007aff]">{pollInterval}s</span>
                 </label>
                 <input
                   type="range" min={3} max={60} step={1}
@@ -628,19 +618,18 @@ export default function SettingsPage() {
                   style={{ height: '4px' }}
                 />
                 <div className="flex justify-between w-full text-[10px] text-[#c7c7cc]">
-                  <span>3s 高频</span><span>建议 5-10s</span><span>60s 低频</span>
+                  <span>3s high</span><span>Recommended 5–10s</span><span>60s low</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ── 翻译引擎 ── */}
           <div className="space-y-1.5">
-            <p className="ios-section-header">翻译引擎</p>
-            <div className="ios-card-grouped">
+            <p className="ios-section-header">Translation engine</p>
+            <div className="tool-panel overflow-hidden p-0">
               <div className="ios-list-row">
                 <Languages className="w-4 h-4 text-[#8e8e93] shrink-0" />
-                <span className="text-[15px] text-[#1c1c1e] flex-1">引擎选择</span>
+                <span className="text-[15px] text-[#1c1c1e] flex-1">Engine</span>
                 <div className="flex gap-1">
                   {(['mymemory', 'ollama'] as const).map(e => (
                     <button
@@ -661,7 +650,7 @@ export default function SettingsPage() {
               {translateEngine === 'ollama' && (
                 <>
                   <div className="ios-list-row border-t border-[#f2f2f7] flex-col items-start gap-1.5">
-                    <label className="text-[12px] text-[#8e8e93]">Ollama 地址</label>
+                    <label className="text-[12px] text-[#8e8e93]">Ollama URL</label>
                     <input
                       value={ollamaUrl}
                       onChange={e => setOllamaUrl(e.target.value)}
@@ -670,7 +659,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="ios-list-row border-t border-[#f2f2f7] flex-col items-start gap-1.5">
-                    <label className="text-[12px] text-[#8e8e93]">翻译模型</label>
+                    <label className="text-[12px] text-[#8e8e93]">Translation model</label>
                     <div className="flex gap-1.5 w-full">
                       <input
                         value={ollamaModel}
@@ -697,7 +686,7 @@ export default function SettingsPage() {
                         const { testOllamaConnection } = await import('@/api/translate');
                         const r = await testOllamaConnection(ollamaUrl);
                         setOllamaTestResult(r.ok ? 'ok' : 'fail');
-                        setOllamaTestMsg(r.ok ? `连接成功，${r.models.length} 个模型` : r.error ?? '连接失败');
+                        setOllamaTestMsg(r.ok ? `Connected successfully, ${r.models.length} models found` : r.error ?? 'Connection failed');
                         if (r.ok) setOllamaModels(r.models);
                         setOllamaTesting(false);
                       }}
@@ -705,7 +694,7 @@ export default function SettingsPage() {
                       className="tool-btn tool-btn-quiet h-7 px-3 text-[12px] disabled:opacity-40"
                     >
                       {ollamaTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
-                      {ollamaTesting ? '检测中…' : '测试 Ollama'}
+                      {ollamaTesting ? 'Testing…' : 'Test Ollama'}
                     </button>
                     {ollamaTestResult !== 'idle' && (
                       <span className={cn('flex items-center gap-1 text-[12px]', ollamaTestResult === 'ok' ? 'text-[#34c759]' : 'text-[#ff3b30]')}>
@@ -715,26 +704,25 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <div className="ios-list-row border-t border-[#f2f2f7]">
-                    <p className="text-[11px] text-[#8e8e93]">Ollama 不可用时自动降级到 MyMemory</p>
+                    <p className="text-[11px] text-[#8e8e93]">Automatically falls back to MyMemory when Ollama is unavailable.</p>
                   </div>
                 </>
               )}
               {translateEngine === 'mymemory' && (
                 <div className="ios-list-row border-t border-[#f2f2f7]">
-                  <p className="text-[12px] text-[#8e8e93]">免费在线翻译，无需本地配置</p>
+                  <p className="text-[12px] text-[#8e8e93]">Free online translation with no local setup required.</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* ── 公告滚动栏 ── */}
           <div className="space-y-1.5">
-            <p className="ios-section-header">公告滚动栏</p>
-            <div className="ios-card-grouped">
+            <p className="ios-section-header">Top marquee</p>
+            <div className="tool-panel overflow-hidden p-0">
               <label className="ios-list-row cursor-pointer">
                 <div className="flex-1">
-                  <p className="text-[15px] text-[#1c1c1e]">显示顶部公告栏</p>
-                  <p className="text-[12px] text-[#8e8e93]">关闭后不显示滚动公告</p>
+                  <p className="text-[15px] text-[#1c1c1e]">Show top marquee</p>
+                  <p className="text-[12px] text-[#8e8e93]">Disable this to hide the scrolling notice.</p>
                 </div>
                 <input
                   type="checkbox"
@@ -745,7 +733,7 @@ export default function SettingsPage() {
               </label>
               <div className="ios-list-row border-t border-[#f2f2f7] flex-col items-start gap-1.5">
                 <label className="text-[12px] text-[#8e8e93]">
-                  滚动一轮时长：<span className="font-mono text-[#007aff]">{Math.max(15, marqueeDuration)}s</span>
+                  Loop duration: <span className="font-mono text-[#007aff]">{Math.max(15, marqueeDuration)}s</span>
                 </label>
                 <input
                   type="range" min={15} max={180} step={5}
@@ -755,16 +743,16 @@ export default function SettingsPage() {
                   style={{ height: '4px' }}
                 />
                 <div className="flex justify-between w-full text-[10px] text-[#c7c7cc]">
-                  <span>15s 较快</span><span>60s 推荐</span><span>180s 较慢</span>
+                  <span>15s fast</span><span>60s recommended</span><span>180s slow</span>
                 </div>
               </div>
               <div className="ios-list-row border-t border-[#f2f2f7] flex-col items-start gap-1.5">
-                <label className="text-[12px] text-[#8e8e93]">公告内容</label>
+                <label className="text-[12px] text-[#8e8e93]">Notice content</label>
                 <textarea
                   value={marqueeNotice}
                   onChange={(event) => setMarqueeNotice(event.target.value)}
                   className="tool-textarea min-h-20 px-3 py-2 text-[13px] w-full"
-                  placeholder="输入顶部滚动公告内容"
+                  placeholder="Enter the scrolling message shown at the top"
                 />
                 <div className="flex justify-end w-full">
                   <button
@@ -773,17 +761,16 @@ export default function SettingsPage() {
                     className="tool-btn tool-btn-quiet h-7 px-3 text-[12px] disabled:opacity-40"
                   >
                     {marqueeSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                    保存公告内容
+                    Save notice
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ── Supabase 数据库 ── */}
           <div className="space-y-1.5">
-            <p className="ios-section-header">Supabase 数据库</p>
-            <div className="ios-card-grouped">
+            <p className="ios-section-header">Supabase</p>
+            <div className="tool-panel overflow-hidden p-0">
               <div className="ios-list-row">
                 <Database className="w-4 h-4 text-[#8e8e93] shrink-0" />
                 <span className="text-[15px] text-[#1c1c1e] flex-1">Project URL</span>
@@ -816,7 +803,7 @@ export default function SettingsPage() {
                   className="tool-btn tool-btn-quiet h-7 px-3 text-[12px] disabled:opacity-40"
                 >
                   {sbTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
-                  {sbTesting ? '检测中…' : '测试'}
+                  {sbTesting ? 'Testing…' : 'Test'}
                 </button>
                 <button
                   onClick={handleSbSave}
@@ -828,7 +815,7 @@ export default function SettingsPage() {
                       : 'tool-btn-primary'
                   )}
                 >
-                  {sbSaved ? <><Check className="w-3.5 h-3.5" />已保存</> : <><Database className="w-3.5 h-3.5" />保存配置</>}
+                  {sbSaved ? <><Check className="w-3.5 h-3.5" />Saved</> : <><Database className="w-3.5 h-3.5" />Save config</>}
                 </button>
                 {sbTestResult !== 'idle' && (
                   <span className={cn('flex items-center gap-1 text-[12px]', sbTestResult === 'ok' ? 'text-[#34c759]' : 'text-[#ff3b30]')}>
@@ -840,31 +827,30 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* ── 保存 + 身份 + 退出 ── */}
-          <div className="flex items-center gap-3 pb-6">
+          <div className="flex items-center gap-3 pb-2">
             <button
               onClick={handleSave}
               style={{ minWidth: '220px' }}
               className={cn(
-                'ios-btn h-9 px-6 text-[15px] font-semibold',
+                'tool-btn h-9 px-6 text-[14px] font-semibold',
                 saved
                   ? 'border border-[#34c759]/30 bg-[#34c759]/10 text-[#34c759]'
-                  : 'ios-btn-primary'
+                  : 'tool-btn-primary'
               )}
             >
-              {saved ? <><Check className="w-4 h-4" />已保存</> : <><Settings className="w-4 h-4" />保存并应用</>}
+              {saved ? <><Check className="w-4 h-4" />Saved</> : <><Settings className="w-4 h-4" />Save and apply</>}
             </button>
             <span className="text-[12px] text-[#8e8e93] ml-auto">
-              {currentRole === 'admin' ? '🔑 管理员' : '👤 子账号'} · {settings.apiKey ? maskApiKey(settings.apiKey) : '未配置'}
+              {currentRole === 'admin' ? '🔑 Admin' : '👤 Sub-account'} · {settings.apiKey ? maskApiKey(settings.apiKey) : 'Not configured'}
             </span>
             <button
               onClick={() => { stopPolling(); updateSettings({ accessKey: undefined }); navigate(ROUTE_PATHS.LOGIN, { replace: true }); }}
-              className="ios-btn ios-btn-destructive h-8 px-3 text-[13px]"
+              className="tool-btn h-8 border border-rose-200 bg-rose-50 px-3 text-[13px] text-rose-700 hover:bg-rose-100"
             >
-              <LogOut className="w-3.5 h-3.5" />退出
+              <LogOut className="w-3.5 h-3.5" />Sign out
             </button>
           </div>
-
+          </div>
         </div>
       ) : (
         <AdminPanel />

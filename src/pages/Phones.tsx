@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Smartphone, Zap, RefreshCw, Plus, Check, AlertCircle, ChevronRight, ArrowRightLeft, Copy } from 'lucide-react';
+import { Smartphone, Zap, RefreshCw, Plus, Check, ChevronRight, ArrowRightLeft, Copy, Server, RotateCw } from 'lucide-react';
 import { useAccountStore, useChatStore, useSettingsStore } from '@/hooks/useStore';
 import { cn, MAX_SLOTS, statusColor, statusLabel } from '@/lib/index';
 import type { PhoneBinding, TextNowAccount } from '@/lib/index';
@@ -30,40 +30,37 @@ function SlotGrid({ binding, accounts, availableAccounts, onAssign, onInject, on
   const usedCount = binding.slots.filter(Boolean).length;
 
   return (
-    <div className="space-y-3">
-      {/* 槽位标题行 */}
+    <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] font-semibold text-[#1c1c1e]">槽位分配</span>
-          <span className="ios-badge">{usedCount}/{MAX_SLOTS}</span>
+          <span className="text-[11px] font-semibold tracking-[0.02em] text-[#1f2328]">Slots</span>
+          <span className="tool-chip">{usedCount}/{MAX_SLOTS}</span>
         </div>
         <button
           onClick={onAutoAssign}
           disabled={availableAccounts.length === 0}
-          className="tool-btn tool-btn-quiet text-[11px] h-6 px-2.5 disabled:opacity-40"
+          className="tool-btn tool-btn-quiet h-6 px-2 text-[10px] disabled:opacity-40"
         >
-          <Plus className="w-3 h-3" />自动补全
+          <Plus className="w-3 h-3" />Auto Fill
         </button>
       </div>
 
-      {/* 进度条 */}
       <div className="flex gap-1">
         {Array.from({ length: MAX_SLOTS }).map((_, i) => (
           <div
             key={i}
             className={cn(
-              'flex-1 h-1.5 rounded-full transition-colors',
+              'h-1.5 flex-1 rounded-full transition-colors',
               binding.slots[i]
                 ? binding.activeSlot === i
-                  ? 'bg-[#007aff]'
-                  : 'bg-[#007aff]/40'
-                : 'bg-[#e5e5ea]'
+                  ? 'bg-[#2563eb]'
+                  : 'bg-[#93c5fd]'
+                : 'bg-[#d7dbe2]'
             )}
           />
         ))}
       </div>
 
-      {/* 槽位网格 */}
       <div className="grid grid-cols-5 gap-1.5">
         {Array.from({ length: MAX_SLOTS }).map((_, slotIdx) => {
           const accountId = binding.slots[slotIdx];
@@ -74,35 +71,35 @@ function SlotGrid({ binding, accounts, availableAccounts, onAssign, onInject, on
             <div
               key={slotIdx}
               className={cn(
-                'rounded-[10px] border p-2 min-h-[72px] transition-all',
+                'min-h-[78px] rounded-[8px] border p-2 transition-all',
                 isActive
-                  ? 'border-[#007aff]/40 bg-[#007aff]/5'
+                  ? 'border-[#8fb4ff] bg-[#eef5ff]'
                   : acc
-                    ? 'border-[#e5e5ea] bg-white'
-                    : 'border-dashed border-[#c7c7cc] bg-[#f9f9fb]'
+                    ? 'border-[#d7dbe2] bg-white'
+                    : 'border-dashed border-[#c7ccd6] bg-[#f6f7f9]'
               )}
             >
               <div className={cn(
-                'text-[9px] font-mono font-semibold mb-1.5',
-                isActive ? 'text-[#007aff]' : 'text-[#8e8e93]'
+                'mb-1 font-mono text-[9px] font-semibold',
+                isActive ? 'text-[#2563eb]' : 'text-[#6b7280]'
               )}>
                 #{slotIdx + 1}{isActive ? ' ▶' : ''}
               </div>
               {acc ? (
                 <>
-                  <div className="text-[9px] font-mono text-[#1c1c1e] leading-tight truncate">{acc.phoneNumber}</div>
-                  <div className={cn('text-[9px] mt-0.5', statusColor(acc.status))}>{statusLabel(acc.status)}</div>
-                  <div className="flex gap-0.5 mt-1.5">
+                  <div className="truncate font-mono text-[9px] leading-tight text-[#1f2328]">{acc.phoneNumber}</div>
+                  <div className={cn('mt-0.5 text-[9px]', statusColor(acc.status))}>{statusLabel(acc.status)}</div>
+                  <div className="mt-1.5 flex gap-1">
                     <button
                       onClick={() => onInject(slotIdx)}
                       disabled={!!injectingId}
-                      className="tool-btn h-4 px-1 text-[9px] disabled:opacity-40 rounded-[5px]"
+                      className="tool-btn h-4 rounded-[4px] px-1 text-[9px] disabled:opacity-40"
                     >
                       {isInjecting ? <RefreshCw className="w-2 h-2 animate-spin" /> : <Zap className="w-2 h-2" />}
                     </button>
                     <button
                       onClick={() => onAssign(slotIdx, null)}
-                      className="h-4 px-1 rounded-[5px] border border-[#e5e5ea] bg-[#f2f2f7] text-[9px] text-[#8e8e93] hover:border-[#ff3b30] hover:text-[#ff3b30] transition-colors"
+                      className="h-4 rounded-[4px] border border-[#d7dbe2] bg-[#f3f4f6] px-1 text-[9px] text-[#6b7280] transition-colors hover:border-[#ef4444] hover:text-[#ef4444]"
                     >✕</button>
                   </div>
                 </>
@@ -110,9 +107,9 @@ function SlotGrid({ binding, accounts, availableAccounts, onAssign, onInject, on
                 <select
                   onChange={e => e.target.value && onAssign(slotIdx, e.target.value)}
                   defaultValue=""
-                  className="w-full text-[9px] text-[#8e8e93] bg-transparent border-none outline-none cursor-pointer mt-1"
+                  className="mt-1 w-full cursor-pointer border-none bg-transparent text-[9px] text-[#6b7280] outline-none"
                 >
-                  <option value="">+ 分配</option>
+                  <option value="">+ Assign</option>
                   {availableAccounts.slice(0, 50).map(a => (
                     <option key={a.id} value={a.id}>{a.phoneNumber}</option>
                   ))}
@@ -176,19 +173,17 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
   };
 
   return (
-    <div className="ios-card overflow-hidden animate-fade-up">
-      {/* 卡片头部 */}
+    <div className="tool-panel overflow-hidden animate-fade-up rounded-[10px]">
       <div
-        className="flex items-center gap-3 p-4 cursor-pointer"
+        className="flex cursor-pointer items-center gap-3 px-3 py-2.5"
         onClick={() => { ensureBinding(phoneId); setExpanded(p => !p); }}
       >
-        {/* 状态点 + 图标 */}
         <div className="relative shrink-0">
           <div className={cn(
-            'w-10 h-10 rounded-[10px] flex items-center justify-center',
-            phone?.status === 1 ? 'bg-[#34c759]/10' : 'bg-[#f2f2f7]'
+            'flex h-9 w-9 items-center justify-center rounded-[8px] border',
+            phone?.status === 1 ? 'border-[#bfdac8] bg-[#eef8f1]' : 'border-[#d7dbe2] bg-[#f6f7f9]'
           )}>
-            <Smartphone className={cn('w-5 h-5', phone?.status === 1 ? 'text-[#34c759]' : 'text-[#8e8e93]')} />
+            <Server className={cn('h-4 w-4', phone?.status === 1 ? 'text-[#1f8f4d]' : 'text-[#6b7280]')} />
           </div>
           <span className={cn(
             'ios-dot absolute -top-0.5 -right-0.5',
@@ -196,51 +191,47 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
           )} />
         </div>
 
-        {/* 主机名 + IP */}
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-semibold text-[#1c1c1e] truncate leading-tight">
+          <p className="truncate text-[13px] font-semibold leading-tight text-[#1f2328]">
             {phone?.name || phoneId}
           </p>
-          <div className="flex items-center gap-1 mt-0.5">
-            <span className="font-mono text-[13px] text-[#8e8e93]">{phone?.ip || '—'}</span>
+          <div className="mt-0.5 flex items-center gap-1">
+            <span className="font-mono text-[11px] text-[#6b7280]">{phone?.ip || '—'}</span>
             {phone?.ip && <IpCopyButton ip={phone.ip} />}
             {phone?.os && (
-              <span className="tool-chip text-[11px] ml-1">{phone.os}</span>
+              <span className="tool-chip ml-1 text-[10px]">{phone.os}</span>
             )}
           </div>
         </div>
 
-        {/* 右侧统计 + 展开 */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="text-right">
-            <p className="text-[12px] font-semibold text-[#1c1c1e]">{assignedCount}/{MAX_SLOTS}</p>
-            <p className="text-[11px] text-[#8e8e93]">{injectedCount} 注入</p>
+          <div className="text-right leading-tight">
+            <p className="text-[11px] font-semibold text-[#1f2328]">{assignedCount}/{MAX_SLOTS}</p>
+            <p className="text-[10px] text-[#6b7280]">{injectedCount} active</p>
           </div>
           <ChevronRight className={cn(
-            'w-4 h-4 text-[#c7c7cc] transition-transform duration-200',
+            'h-4 w-4 text-[#9ca3af] transition-transform duration-200',
             expanded && 'rotate-90'
           )} />
         </div>
       </div>
 
-      {/* 展开区域 */}
       {expanded && (
-        <div className="border-t border-[#f2f2f7] px-4 pb-4 pt-3 space-y-3 bg-[#fafafa] animate-fade-up">
-          {/* 操作按钮组 */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="animate-fade-up space-y-3 border-t border-[#e3e6eb] bg-[#fbfbfc] px-3 pb-3 pt-2.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             {[
-              { label: '批量注入', icon: <Zap className="w-3 h-3" />, onClick: handleInjectAll, disabled: assignedCount === 0 || !!injectingId, cls: 'text-[#007aff]' },
-              { label: '自动分配', icon: <Plus className="w-3 h-3" />, onClick: () => { const n = autoAssign(phoneId); setMsg(`自动分配了 ${n} 个账号`); }, disabled: availableAccounts.length === 0, cls: 'text-[#34c759]' },
-              { label: '自动补号', icon: <ArrowRightLeft className="w-3 h-3" />, onClick: handleAutoReplace, disabled: !!injectingId, cls: 'text-[#ff9500]' },
-              { label: '切换槽位', icon: <RefreshCw className="w-3 h-3" />, onClick: () => advanceSlot(phoneId), disabled: false, cls: 'text-[#8e8e93]' },
+              { label: 'Inject All', icon: <Zap className="w-3 h-3" />, onClick: handleInjectAll, disabled: assignedCount === 0 || !!injectingId, cls: 'text-[#2563eb]' },
+              { label: 'Auto Assign', icon: <Plus className="w-3 h-3" />, onClick: () => { const n = autoAssign(phoneId); setMsg(`Assigned ${n} account(s)`); }, disabled: availableAccounts.length === 0, cls: 'text-[#1f8f4d]' },
+              { label: 'Replace', icon: <ArrowRightLeft className="w-3 h-3" />, onClick: handleAutoReplace, disabled: !!injectingId, cls: 'text-[#b45309]' },
+              { label: 'Rotate', icon: <RotateCw className="w-3 h-3" />, onClick: () => advanceSlot(phoneId), disabled: false, cls: 'text-[#6b7280]' },
             ].map(btn => (
               <button
                 key={btn.label}
                 onClick={btn.onClick}
                 disabled={btn.disabled}
-                className={cn('tool-btn tool-btn-quiet h-7 px-2.5 text-[11px] font-medium disabled:opacity-40', btn.cls)}
+                className={cn('tool-btn tool-btn-quiet h-6 px-2 text-[10px] font-medium disabled:opacity-40', btn.cls)}
               >
-                {injectingId && btn.label === '批量注入'
+                {injectingId && btn.label === 'Inject All'
                   ? <RefreshCw className="w-3 h-3 animate-spin" />
                   : btn.icon}
                 {btn.label}
@@ -248,14 +239,12 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
             ))}
           </div>
 
-          {/* 操作反馈 */}
           {msg && (
-            <div className="flex items-center gap-1.5 text-[12px] text-[#34c759] bg-[#34c759]/8 border border-[#34c759]/20 rounded-[8px] px-3 py-1.5">
+            <div className="flex items-center gap-1.5 rounded-[7px] border border-[#bfdac8] bg-[#eef8f1] px-2.5 py-1.5 text-[11px] text-[#1f8f4d]">
               <Check className="w-3.5 h-3.5 shrink-0" />{msg}
             </div>
           )}
 
-          {/* 槽位网格 */}
           <SlotGrid
             binding={binding}
             accounts={accounts}
@@ -277,29 +266,30 @@ export default function Phones() {
   const { settings } = useSettingsStore();
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#f2f2f7]">
-      {/* 工具栏 */}
-      <div className="tool-toolbar h-11 px-4 flex items-center gap-2 shrink-0">
-        <span className="text-[17px] font-semibold text-[#1c1c1e] flex-1">云手机</span>
-        <span className="text-[13px] text-[#8e8e93]">{cloudPhones.length} 台设备</span>
+    <div className="flex h-full flex-col overflow-hidden bg-[#f3f4f6]">
+      <div className="tool-toolbar h-10 px-3 flex items-center gap-2 shrink-0">
+        <div className="flex flex-1 items-center gap-2">
+          <Smartphone className="h-4 w-4 text-[#2563eb]" />
+          <span className="text-[13px] font-semibold tracking-[0.01em] text-[#1f2328]">Cloud Phones</span>
+          <span className="tool-chip text-[10px]">{cloudPhones.length} devices</span>
+        </div>
         <button
           onClick={() => loadNumbers(settings.apiKey, settings.apiRegion)}
-          className="tool-btn tool-btn-quiet h-7 px-2.5 text-[12px]"
+          className="tool-btn tool-btn-quiet h-6 px-2 text-[10px]"
         >
-          <RefreshCw className="w-3.5 h-3.5" />刷新
+          <RefreshCw className="h-3 w-3" />Refresh
         </button>
       </div>
 
-      {/* 内容区 */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto p-3">
         {cloudPhones.length === 0 ? (
           <div className="tool-empty">
             <Smartphone className="w-10 h-10 text-[#c7c7cc] mb-3" />
-            <p className="text-[15px] font-medium text-[#8e8e93]">暂无云手机设备</p>
-            <p className="text-[13px] text-[#c7c7cc] mt-1">请在设置页配置 API Key 后刷新</p>
+            <p className="text-[15px] font-medium text-[#6b7280]">No cloud phone devices yet</p>
+            <p className="mt-1 text-[13px] text-[#9ca3af]">Configure the API key in Settings, then refresh.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-2.5">
             {cloudPhones.map(phone => (
               <PhoneCard key={phone.id} phoneId={phone.id} />
             ))}

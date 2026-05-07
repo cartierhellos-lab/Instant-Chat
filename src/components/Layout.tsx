@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   MessageSquare, ListTodo, Settings, RefreshCw,
-  Smartphone, Users, Megaphone, Languages, MessageCircle,
+  Smartphone, Users, Megaphone, Languages, MessageCircle, Phone, Wifi, WifiOff,
 } from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import { useSettingsStore, useChatStore, useAdminStore } from '@/hooks/useStore';
@@ -12,6 +12,7 @@ import { ensureCommunityRoom, getSubAccounts } from '@/api/supabase';
 import { useWhatsAppStore } from '@/pages/WhatsApp';
 
 export default function Layout() {
+  const navigate = useNavigate();
   const { settings } = useSettingsStore();
   const { startPolling, stopPolling, isLoading, lastError, cloudNumbers, loadCloudPhones } = useChatStore();
   const { currentRole, resolveRole, setRole, setSubAccounts, setRoleResolved } = useAdminStore();
@@ -140,97 +141,53 @@ export default function Layout() {
   }, [loadCloudPhones, settings.apiKey, settings.apiRegion, settings.pollInterval, startPolling, stopPolling]);
 
   const isAdmin = currentRole === 'admin';
+  const isElectron = typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
 
   // 导航项（按任务要求的顺序）
   const NAV_ITEMS = [
-    { path: ROUTE_PATHS.HOME,       icon: MessageSquare, label: '聊天',     show: true,    badge: 0 },
-    { path: '/whatsapp',            icon: MessageCircle, label: 'WhatsApp', show: true,    badge: waUnreadTotal },
-    { path: ROUTE_PATHS.PHONES,     icon: Smartphone,    label: '云手机',   show: true,    badge: 0 },
-    { path: ROUTE_PATHS.ACCOUNTS,   icon: Users,         label: '账号',     show: isAdmin, badge: 0 },
-    { path: ROUTE_PATHS.TASKS,      icon: ListTodo,      label: '任务',     show: true,    badge: 0 },
-    { path: ROUTE_PATHS.TRANSLATOR, icon: Languages,     label: '翻译',     show: true,    badge: 0 },
-    { path: ROUTE_PATHS.COMMUNITY,  icon: Megaphone,     label: '社群',     show: true,    badge: 0 },
-    { path: ROUTE_PATHS.SETTINGS,   icon: Settings,      label: '管理',     show: isAdmin, badge: 0, adminOnly: true },
-    { path: ROUTE_PATHS.SETTINGS,   icon: Settings,      label: '设置',     show: !isAdmin, badge: 0 },
+    { path: ROUTE_PATHS.HOME,       icon: MessageSquare, label: '聊天',     show: true,       badge: 0 },
+    { path: ROUTE_PATHS.TRANSLATOR, icon: Languages,     label: '翻译',     show: true,       badge: 0 },
+    { path: ROUTE_PATHS.COMMUNITY,  icon: Megaphone,     label: '社群',     show: true,       badge: 0 },
+    { path: ROUTE_PATHS.ACCOUNTS,   icon: Users,         label: '资源',     show: isAdmin,    badge: 0 },
+    { path: ROUTE_PATHS.PHONES,     icon: Smartphone,    label: '设备',     show: true,       badge: 0 },
+    { path: ROUTE_PATHS.TASKS,      icon: ListTodo,      label: '群发',     show: true,       badge: 0 },
+    { path: '/whatsapp',            icon: MessageCircle, label: 'WhatsApp', show: isElectron, badge: waUnreadTotal },
+    { path: ROUTE_PATHS.SETTINGS,   icon: Settings,      label: '设置',     show: true,       badge: 0 },
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden">
-
-      {/* ── 左侧边栏 200px ─────────────────────────────────────────── */}
-      <aside className="ios-sidebar flex flex-col" style={{ width: 200, flexShrink: 0 }}>
-
-        {/* 1. 顶部 Logo 区 */}
-        <div
-          className="flex items-center gap-2.5 px-4 shrink-0"
-          style={{
-            height: 56,
-            borderBottom: '0.5px solid rgba(0,0,0,0.08)',
-          }}
-        >
-          {/* 渐变圆形图标 28×28 */}
-          <div
-            className="flex items-center justify-center rounded-lg shrink-0"
-            style={{
-              width: 28,
-              height: 28,
-              background: 'linear-gradient(135deg, #007aff 0%, #a855f7 100%)',
-            }}
-          >
-            <MessageCircle size={14} color="white" strokeWidth={2.2} />
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
+      <header className="tool-header flex h-10 items-center gap-2 px-3 shrink-0 select-none">
+        <div className="flex items-center gap-1.5 mr-2">
+          <div className="flex h-5 w-5 items-center justify-center rounded-[5px] bg-primary text-primary-foreground shadow-btn">
+            <Phone size={12} strokeWidth={2.2} />
           </div>
-          {/* App 名称 */}
-          <span
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              letterSpacing: '-0.02em',
-              color: 'var(--foreground, #1c1c1e)',
-            }}
-          >
+          <span className="text-[11px] font-semibold tracking-tight text-foreground/75">
             Instant Chat
           </span>
         </div>
 
-        {/* 2. 状态指示行 */}
-        <div
-          className="flex items-center justify-between px-4 shrink-0"
-          style={{ height: 32 }}
-        >
-          {/* 左：号码数量 */}
-          <span style={{ fontSize: 11, color: 'var(--muted-foreground, #8e8e93)' }}>
-            {cloudNumbers.length} 个号码
-          </span>
+        <div className="toolbar-divider" />
 
-          {/* 右：连接状态点 */}
-          {isLoading
-            ? <span className="ios-dot ios-dot-loading" />
-            : lastError
-              ? <span className="ios-dot ios-dot-offline" />
-              : <span className="ios-dot ios-dot-online" />
-          }
-        </div>
-
-        {/* 3. 导航列表 */}
-        <nav
-          className="flex-1 overflow-y-auto px-2 py-2"
-          style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-        >
-          {NAV_ITEMS.filter(i => i.show).map(({ path, icon: Icon, label, badge, adminOnly }, idx) => (
+        <nav className="flex items-center gap-0.5 min-w-0 overflow-x-auto">
+          {NAV_ITEMS.filter((item) => item.show).map(({ path, icon: Icon, label, badge }, idx) => (
             <NavLink
               key={`${path}-${label}-${idx}`}
               to={path}
               end={path === ROUTE_PATHS.HOME}
               className={({ isActive }) =>
-                cn('ios-nav-item', isActive && 'active')
+                cn(
+                  'desktop-nav-item tool-tab h-6 transition-all duration-100',
+                  isActive
+                    ? 'desktop-nav-item-active tool-tab-active text-foreground'
+                    : 'text-foreground/60 hover:text-foreground hover:bg-white/60'
+                )
               }
             >
-              <Icon size={16} strokeWidth={1.8} />
-              <span style={{ fontSize: 15, flex: 1 }}>{label}</span>
-
-              {/* WhatsApp 未读角标 */}
+              <Icon size={12} strokeWidth={2} />
+              <span>{label}</span>
               {badge > 0 && (
-                <span className="ios-badge">
+                <span className="ios-badge ml-1 min-w-[16px] h-4 px-1 text-[9px]">
                   {badge > 99 ? '99+' : badge}
                 </span>
               )}
@@ -238,46 +195,41 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* 4. 底部用户区 */}
-        <div
-          className="flex items-center gap-2 px-3 shrink-0"
-          style={{
-            height: 48,
-            borderTop: '0.5px solid rgba(0,0,0,0.08)',
-          }}
-        >
-          {/* 角色标签 */}
-          <span
-            className="tool-chip"
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              background: isAdmin ? 'rgba(0,122,255,0.12)' : 'rgba(142,142,147,0.12)',
-              color: isAdmin ? '#007aff' : '#8e8e93',
-              padding: '2px 8px',
-              borderRadius: 6,
-              flexShrink: 0,
-            }}
-          >
-            {isAdmin ? '管理员' : '用户'}
+        <div className="ml-auto flex items-center gap-1.5 shrink-0">
+          <span className="text-[9px] font-mono text-foreground/45">
+            {cloudNumbers.length} numbers
           </span>
 
-          {/* spacer */}
-          <div style={{ flex: 1 }} />
+          <div className="toolbar-divider" />
 
-          {/* 刷新按钮 */}
-          <button
-            className="tool-btn-quiet flex items-center justify-center"
-            style={{ width: 28, height: 28, borderRadius: 7 }}
-            onClick={() => startPolling(settings.apiKey ?? '', settings.apiRegion, settings.pollInterval)}
-            title="刷新连接"
-          >
-            <RefreshCw size={12} />
-          </button>
+          {isLoading && <RefreshCw className="h-3 w-3 animate-spin text-foreground/45" />}
+
+          {lastError && !isLoading && (
+            <button
+              onClick={() => navigate(ROUTE_PATHS.SETTINGS)}
+              className="flex items-center gap-1 text-[9px] text-destructive hover:opacity-80"
+              title={lastError}
+            >
+              <WifiOff className="h-3 w-3" />
+              <span>offline</span>
+            </button>
+          )}
+
+          {settings.apiKey && !lastError && !isLoading && (
+            <span className="flex items-center gap-1 text-[9px] text-[color:var(--success)]">
+              <Wifi className="h-3 w-3" />
+              <span>online</span>
+            </span>
+          )}
+
+          <div className="toolbar-divider" />
+
+          <span className="tool-chip rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em]">
+            {isAdmin ? 'admin' : 'user'}
+          </span>
         </div>
-      </aside>
+      </header>
 
-      {/* ── 右侧内容区 ──────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 overflow-hidden">
 
         {/* 公告滚动条（仅在有公告时显示） */}

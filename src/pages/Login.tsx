@@ -144,57 +144,47 @@ export default function LoginPage() {
   return (
     <div
       className="flex items-center justify-center w-screen h-screen px-4"
-      style={{
-        background: 'linear-gradient(135deg, #e8f0fe 0%, #f0e8ff 50%, #fce8f0 100%)',
-      }}
+      style={{ background: '#eef1f4' }}
     >
-      {/* 磨砂玻璃登录卡片 */}
       <div
         className="ios-login-panel animate-spring-in"
-        style={{ width: 380, padding: '48px 40px' }}
+        style={{ width: 380, padding: '28px 26px' }}
       >
-        {/* ① App 图标 */}
-        <div className="flex flex-col items-center gap-3 mb-7">
+        <div className="flex flex-col items-center gap-2 mb-5">
           <div
-            className="flex items-center justify-center rounded-[14px] shadow-lg"
+            className="flex items-center justify-center rounded-[8px] shadow-btn"
             style={{
-              width: 48,
-              height: 48,
-              background: 'linear-gradient(135deg, #007aff 0%, #a855f7 100%)',
+              width: 38,
+              height: 38,
+              background: 'linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)',
             }}
           >
-            <MessageCircle size={24} color="white" strokeWidth={2} />
+            <MessageCircle size={18} color="white" strokeWidth={2} />
           </div>
 
-          {/* ② 标题 */}
           <div className="text-center">
             <h1
               className="font-bold text-center"
-              style={{ fontSize: 22, color: '#1c1c1e', letterSpacing: '-0.02em' }}
+              style={{ fontSize: 18, color: '#1f2328', letterSpacing: '-0.015em' }}
             >
               Instant Chat
             </h1>
 
-            {/* ③ 副标题 */}
             <p
               className="text-center mt-1"
-              style={{ fontSize: 13, color: 'var(--muted-foreground, #8e8e93)' }}
+              style={{ fontSize: 12, color: 'var(--muted-foreground, #6b7280)' }}
             >
               {hostCopy.subtitle}
             </p>
           </div>
         </div>
 
-        {/* ④ 分割间距已由上方 mb-7 + 下方 space-y-3 提供 */}
-
-        {/* ⑤ 输入框容器 */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div className="relative">
-            {/* 左侧锁图标 */}
             <Lock
-              size={14}
+              size={13}
               className="absolute top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ left: 14, color: 'var(--muted-foreground, #8e8e93)' }}
+              style={{ left: 10, color: 'var(--muted-foreground, #6b7280)' }}
             />
 
             <input
@@ -207,47 +197,50 @@ export default function LoginPage() {
               autoFocus
               className="tool-input w-full"
               style={{
-                height: 50,
-                fontSize: 15,
-                paddingLeft: 44,
-                paddingRight: 44,
+                height: 38,
+                fontSize: 13,
+                paddingLeft: 34,
+                paddingRight: 34,
                 borderColor: error ? '#ff3b30' : undefined,
               }}
             />
 
-            {/* 右侧眼睛图标 */}
             <button
               type="button"
               tabIndex={-1}
               onClick={() => setShow(s => !s)}
               className="absolute top-1/2 -translate-y-1/2 transition-colors"
               style={{
-                right: 14,
-                color: 'var(--muted-foreground, #8e8e93)',
+                right: 10,
+                color: 'var(--muted-foreground, #6b7280)',
               }}
             >
-              {show ? <EyeOff size={16} /> : <Eye size={16} />}
+              {show ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
           </div>
 
-          {/* ⑥ 错误提示 */}
           {error && (
-            <div className="flex items-center gap-1.5" style={{ color: '#ff3b30', fontSize: 13 }}>
+            <div className="flex items-center gap-1.5" style={{ color: '#ff3b30', fontSize: 12 }}>
               <AlertCircle size={13} />
               <span>{error}</span>
             </div>
           )}
 
-          {/* ⑦ 登录按钮 */}
+          <div
+            className="text-center px-1"
+            style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--muted-foreground, #6b7280)' }}
+          >
+            {hostCopy.prompt}
+          </div>
           <button
             onClick={handleLogin}
             disabled={loading || !key.trim()}
             className="ios-btn ios-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40"
-            style={{ height: 50, fontSize: 17, fontWeight: 600 }}
+            style={{ height: 36, fontSize: 13, borderRadius: 6 }}
           >
             {loading ? (
               <>
-                <Loader2 size={18} className="animate-spin" />
+                <Loader2 size={16} className="animate-spin" />
                 <span>验证中…</span>
               </>
             ) : (
@@ -256,14 +249,13 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* ⑧ 底部角标 */}
         <p
-          className="text-center mt-6"
+          className="text-center mt-5"
           style={{
-            fontSize: 11,
-            color: 'var(--muted-foreground, #8e8e93)',
-            letterSpacing: '0.08em',
-            opacity: 0.7,
+            fontSize: 10,
+            color: 'var(--muted-foreground, #6b7280)',
+            letterSpacing: '0.14em',
+            opacity: 0.8,
           }}
         >
           {hostCopy.footer}
