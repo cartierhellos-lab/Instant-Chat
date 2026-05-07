@@ -8,22 +8,13 @@
   "scripts": {
     "dev": "VITE_ENABLE_ROUTE_MESSAGING=true vite",
     "build": "vite build",
-    "build:desktop": "VITE_DESKTOP_BUILD=1 vite build && npx electron-builder --dir",
     "build:dev": "VITE_ENABLE_ROUTE_MESSAGING=true vite build --mode development --sourcemap",
     "build:map": "VITE_ENABLE_ROUTE_MESSAGING=true vite build --sourcemap",
-    "desktop": "VITE_DESKTOP_BUILD=1 vite build && ELECTRON_DISABLE_SANDBOX=1 npx electron .",
-    "desktop:compat": "VITE_DESKTOP_BUILD=1 vite build && ELECTRON_DISABLE_SANDBOX=1 npx electron .",
-    "desktop:dev": "ELECTRON_START_URL=http://127.0.0.1:8080 ELECTRON_DISABLE_SANDBOX=1 npx electron .",
-    "desktop:prod": "npx electron .",
     "lint": "eslint .",
     "preview": "vite preview",
     "preview:dev": "npm run build:dev && npm run preview",
-    "test:edge-functions": "cd supabase/edge_function && deno task test",
-    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "vite build && electron-builder",
-    "electron:pack": "electron-builder --dir"
+    "test:edge-functions": "cd supabase/edge_function && deno task test"
   },
-  "main": "electron/main.cjs",
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
     "@iconify/react": "^6.0.2",
@@ -103,41 +94,12 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
-    "electron": "^30.0.0",
-    "electron-builder": "^24.13.3",
-    "electron-updater": "^6.1.8",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "wait-on": "^7.2.0",
     "ts-node": "^10.9.2"
   },
-  "build": {
-    "appId": "com.carriermiller.instant-chat",
-    "productName": "Instant Chat",
-    "directories": {
-      "output": "dist-electron"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "public/**/*"
-    ],
-    "mac": {
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "category": "public.app-category.business"
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "icon": "public/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
