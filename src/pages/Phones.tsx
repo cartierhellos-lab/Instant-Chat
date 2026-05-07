@@ -4,7 +4,7 @@ import { useAccountStore, useChatStore, useSettingsStore } from '@/hooks/useStor
 import { cn, MAX_SLOTS, statusColor, statusLabel } from '@/lib/index';
 import type { PhoneBinding, TextNowAccount } from '@/lib/index';
 
-// ─── IP 复制按钮 ─────────────────────────────────────────────────────────────
+// ─── IP Copy按钮 ─────────────────────────────────────────────────────────────
 function IpCopyButton({ ip }: { ip: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -14,7 +14,7 @@ function IpCopyButton({ ip }: { ip: string }) {
         'flex items-center justify-center w-6 h-6 rounded-full transition-colors shrink-0',
         copied ? 'bg-[#34c759]/15 text-[#34c759]' : 'hover:bg-[#f2f2f7] text-[#8e8e93]'
       )}
-      title="复制 IP"
+      title="Copy IP"
     >
       {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
     </button>
@@ -33,7 +33,7 @@ function SlotGrid({ binding, accounts, availableAccounts, onAssign, onInject, on
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold tracking-[0.02em] text-[#1f2328]">Slots</span>
+          <span className="text-[11px] font-semibold tracking-[0.02em] text-[#1f2328]">槽位</span>
           <span className="tool-chip">{usedCount}/{MAX_SLOTS}</span>
         </div>
         <button
@@ -187,7 +187,7 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
           </div>
           <span className={cn(
             'ios-dot absolute -top-0.5 -right-0.5',
-            phone?.status === 1 ? 'ios-dot-online' : 'ios-dot-offline'
+            phone?.status === 1 ? 'ios-dot-online' : 'ios-dot-离线'
           )} />
         </div>
 
@@ -220,10 +220,10 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
         <div className="animate-fade-up space-y-3 border-t border-[#e3e6eb] bg-[#fbfbfc] px-3 pb-3 pt-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
             {[
-              { label: 'Inject All', icon: <Zap className="w-3 h-3" />, onClick: handleInjectAll, disabled: assignedCount === 0 || !!injectingId, cls: 'text-[#2563eb]' },
-              { label: 'Auto Assign', icon: <Plus className="w-3 h-3" />, onClick: () => { const n = autoAssign(phoneId); setMsg(`Assigned ${n} account(s)`); }, disabled: availableAccounts.length === 0, cls: 'text-[#1f8f4d]' },
-              { label: 'Replace', icon: <ArrowRightLeft className="w-3 h-3" />, onClick: handleAutoReplace, disabled: !!injectingId, cls: 'text-[#b45309]' },
-              { label: 'Rotate', icon: <RotateCw className="w-3 h-3" />, onClick: () => advanceSlot(phoneId), disabled: false, cls: 'text-[#6b7280]' },
+              { label: '全部注入', icon: <Zap className="w-3 h-3" />, onClick: handleInjectAll, disabled: assignedCount === 0 || !!injectingId, cls: 'text-[#2563eb]' },
+              { label: '自动分配', icon: <Plus className="w-3 h-3" />, onClick: () => { const n = autoAssign(phoneId); setMsg(`已分配 ${n} 个账号`); }, disabled: availableAccounts.length === 0, cls: 'text-[#1f8f4d]' },
+              { label: '替换封禁', icon: <ArrowRightLeft className="w-3 h-3" />, onClick: handleAutoReplace, disabled: !!injectingId, cls: 'text-[#b45309]' },
+              { label: '轮转槽位', icon: <RotateCw className="w-3 h-3" />, onClick: () => advanceSlot(phoneId), disabled: false, cls: 'text-[#6b7280]' },
             ].map(btn => (
               <button
                 key={btn.label}
@@ -231,7 +231,7 @@ function PhoneCard({ phoneId }: { phoneId: string }) {
                 disabled={btn.disabled}
                 className={cn('tool-btn tool-btn-quiet h-6 px-2 text-[10px] font-medium disabled:opacity-40', btn.cls)}
               >
-                {injectingId && btn.label === 'Inject All'
+                {injectingId && btn.label === '全部注入'
                   ? <RefreshCw className="w-3 h-3 animate-spin" />
                   : btn.icon}
                 {btn.label}
@@ -270,7 +270,7 @@ export default function Phones() {
       <div className="tool-toolbar h-10 px-3 flex items-center gap-2 shrink-0">
         <div className="flex flex-1 items-center gap-2">
           <Smartphone className="h-4 w-4 text-[#2563eb]" />
-          <span className="text-[13px] font-semibold tracking-[0.01em] text-[#1f2328]">Cloud Phones</span>
+          <span className="text-[13px] font-semibold tracking-[0.01em] text-[#1f2328]">云手机设备</span>
           <span className="tool-chip text-[10px]">{cloudPhones.length} devices</span>
         </div>
         <button
@@ -285,8 +285,8 @@ export default function Phones() {
         {cloudPhones.length === 0 ? (
           <div className="tool-empty">
             <Smartphone className="w-10 h-10 text-[#c7c7cc] mb-3" />
-            <p className="text-[15px] font-medium text-[#6b7280]">No cloud phone devices yet</p>
-            <p className="mt-1 text-[13px] text-[#9ca3af]">Configure the API key in Settings, then refresh.</p>
+            <p className="text-[15px] font-medium text-[#6b7280]">暂无云手机设备</p>
+            <p className="mt-1 text-[13px] text-[#9ca3af]">请先在Settings中配置 API Key，然后刷新。</p>
           </div>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-2.5">

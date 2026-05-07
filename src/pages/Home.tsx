@@ -135,7 +135,7 @@ function MessageBubble({
   );
 }
 
-// ─── 语言选项 ─────────────────────────────────────────────────────────────────
+// ─── Languages选项 ─────────────────────────────────────────────────────────────────
 const LANG_OPTIONS = [
   { value: 'en', label: '英文' },
   { value: 'zh-CN', label: '中文' },
@@ -151,12 +151,12 @@ function ChatArea({ conv }: { conv: Conversation }) {
   const { settings } = useSettingsStore();
   const { markRead, addMessage } = useChatStore();
   const [input, setInput] = useState('');
-  const [translated, setTranslated] = useState('');
+  const [translated, set翻译d] = useState('');
   const [sending, setSending] = useState(false);
-  const [translateOn, setTranslateOn] = useState(false);
+  const [translateOn, set翻译On] = useState(false);
   const [targetLang, setTargetLang] = useState('en');
   const [translating, setTranslating] = useState(false);
-  const [translateEngine, setTranslateEngine] = useState('');
+  const [translateEngine, set翻译Engine] = useState('');
   const [langOpen, setLangOpen] = useState(false);
   const [inboundTranslations, setInboundTranslations] = useState<Record<string, string>>({});
   const [translatingIds, setTranslatingIds] = useState<Record<string, boolean>>({});
@@ -172,7 +172,7 @@ function ChatArea({ conv }: { conv: Conversation }) {
 
   useEffect(() => {
     setInput('');
-    setTranslated('');
+    set翻译d('');
     setSelectedImage(null);
     setInboundTranslations({});
     setTranslatingIds({});
@@ -180,7 +180,7 @@ function ChatArea({ conv }: { conv: Conversation }) {
   }, [conv.id]);
 
   useEffect(() => {
-    if (!translateOn || !input.trim()) { setTranslated(''); setTranslateEngine(''); return; }
+    if (!translateOn || !input.trim()) { set翻译d(''); set翻译Engine(''); return; }
     if (translateTimer.current) clearTimeout(translateTimer.current);
     setTranslating(true);
     translateTimer.current = setTimeout(async () => {
@@ -190,8 +190,8 @@ function ChatArea({ conv }: { conv: Conversation }) {
         ollamaModel: settings.ollamaModel,
         targetLang,
       });
-      setTranslated(result);
-      setTranslateEngine(error ? `${engine}(降级)` : engine);
+      set翻译d(result);
+      set翻译Engine(error ? `${engine}(降级)` : engine);
       setTranslating(false);
     }, 600);
     return () => { if (translateTimer.current) clearTimeout(translateTimer.current); };
@@ -237,19 +237,19 @@ function ChatArea({ conv }: { conv: Conversation }) {
     event.target.value = '';
   };
 
-  const handleSend = async (useTranslated = false) => {
-    const text = (useTranslated ? translated : input).trim();
+  const handleSend = async (use翻译d = false) => {
+    const text = (use翻译d ? translated : input).trim();
     if ((!text && !selectedImage) || sending) return;
     const previewImage = selectedImage;
     if (previewImage) {
       toast({
         title: '外部通道图片尚未接通',
-        description: '当前第三方号码聊天仅支持文本直发；图片发送将改走 DuoPlus 云机自动化流程。',
+        description: '当前第三方号码聊天仅支持文本直发；图片Send将改走 DuoPlus 云机自动化流程。',
       });
       return;
     }
     setInput('');
-    setTranslated('');
+    set翻译d('');
     setSending(true);
     try {
       if (settings.apiKey) {
@@ -263,7 +263,7 @@ function ChatArea({ conv }: { conv: Conversation }) {
         status: 'sent',
       });
     } catch (err) {
-      toast({ title: '发送失败', description: (err as Error).message, variant: 'destructive' });
+      toast({ title: 'Send失败', description: (err as Error).message, variant: 'destructive' });
     } finally {
       setSending(false);
     }
@@ -286,7 +286,7 @@ function ChatArea({ conv }: { conv: Conversation }) {
           <span className="text-[11px] text-muted-foreground">翻译</span>
           <button
             type="button"
-            onClick={() => setTranslateOn(v => !v)}
+            onClick={() => set翻译On(v => !v)}
             className={cn(
               'relative inline-flex h-[22px] w-[38px] rounded-full border-2 border-transparent transition-colors duration-200',
               translateOn ? 'bg-primary' : 'bg-black/20'
@@ -353,7 +353,7 @@ function ChatArea({ conv }: { conv: Conversation }) {
           <img src={selectedImage.url} alt={selectedImage.name} className="h-12 w-12 rounded-lg object-cover border border-black/[0.06]" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[11px] text-foreground font-medium">{selectedImage.name}</p>
-            <p className="text-[10px] text-muted-foreground">图片发送需走 DuoPlus 自动化流程</p>
+            <p className="text-[10px] text-muted-foreground">图片Send需走 DuoPlus 自动化流程</p>
           </div>
           <button
             type="button"
@@ -387,12 +387,12 @@ function ChatArea({ conv }: { conv: Conversation }) {
             <Smile size={13} />
           </button>
 
-          {/* 语言 Popover */}
+          {/* Languages Popover */}
           <Popover open={langOpen} onOpenChange={setLangOpen}>
             <PopoverTrigger asChild>
               <button
                 type="button"
-                onClick={() => setTranslateOn(true)}
+                onClick={() => set翻译On(true)}
                 className={cn(
                   'inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-medium transition border',
                   translateOn
@@ -422,7 +422,7 @@ function ChatArea({ conv }: { conv: Conversation }) {
             </PopoverContent>
           </Popover>
 
-          <span className="ml-auto text-[9px] text-muted-foreground/60">Enter 发送 · Shift+Enter 换行</span>
+          <span className="ml-auto text-[9px] text-muted-foreground/60">Enter Send · Shift+Enter 换行</span>
         </div>
 
         {/* 输入行 */}
@@ -462,14 +462,14 @@ function EmptyChat() {
 }
 
 // ─── 筛选 ────────────────────────────────────────────────────────────────────
-type ConvFilter = 'all' | 'unread' | 'inbound' | 'outbound';
-const CONV_FILTERS: { value: ConvFilter; label: string }[] = [
+type Conv筛选 = 'all' | 'unread' | 'inbound' | 'outbound';
+const CONV_FILTERS: { value: Conv筛选; label: string }[] = [
   { value: 'all', label: '全部' },
   { value: 'unread', label: '未读' },
   { value: 'inbound', label: '收到' },
   { value: 'outbound', label: '发出' },
 ];
-function applyFilter(convs: Conversation[], f: ConvFilter) {
+function apply筛选(convs: Conversation[], f: Conv筛选) {
   if (f === 'unread') return convs.filter(c => c.unreadCount > 0);
   if (f === 'inbound') return convs.filter(c => c.lastMessage?.direction === 'inbound');
   if (f === 'outbound') return convs.filter(c => c.lastMessage?.direction === 'outbound');
@@ -479,7 +479,7 @@ function applyFilter(convs: Conversation[], f: ConvFilter) {
 // ─── 主页 ─────────────────────────────────────────────────────────────────────
 export default function Home() {
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<ConvFilter>('all');
+  const [filter, set筛选] = useState<Conv筛选>('all');
   const [showBroadcast, setShowBroadcast] = useState(false);
   const { conversations, activeConversationId, setActiveConversation } = useChatStore();
 
@@ -487,7 +487,7 @@ export default function Home() {
     const q = search.toLowerCase();
     return c.cloudNumber.number.toLowerCase().includes(q) || (c.cloudNumber.name?.toLowerCase().includes(q) ?? false);
   });
-  const filtered = applyFilter(searched, filter);
+  const filtered = apply筛选(searched, filter);
   const sorted = [...filtered].sort((a, b) => {
     if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
     if (b.unreadCount > 0 && a.unreadCount === 0) return 1;
@@ -504,7 +504,7 @@ export default function Home() {
         className="shrink-0 h-full flex flex-col bg-white/80"
         style={{ width: 260, borderRight: '0.5px solid rgba(0,0,0,0.09)' }}
       >
-        {/* 搜索栏 */}
+        {/* Search栏 */}
         <div
           className="h-12 px-3 flex items-center gap-2 shrink-0"
           style={{ borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}
@@ -514,7 +514,7 @@ export default function Home() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="搜索"
+              placeholder="Search"
               className="tool-input h-8 w-full pl-8 pr-3 rounded-full text-[13px] placeholder:text-muted-foreground/50"
             />
           </div>
@@ -530,11 +530,11 @@ export default function Home() {
         {/* 筛选 tabs */}
         <div className="flex items-center gap-0.5 px-2 py-1.5 shrink-0">
           {CONV_FILTERS.map(({ value, label }) => {
-            const cnt = value === 'all' ? conversations.length : applyFilter(conversations, value).length;
+            const cnt = value === 'all' ? conversations.length : apply筛选(conversations, value).length;
             return (
               <button
                 key={value}
-                onClick={() => setFilter(value)}
+                onClick={() => set筛选(value)}
                 className={cn(
                   'flex-1 h-6 text-[10px] font-medium rounded-full transition-colors',
                   filter === value

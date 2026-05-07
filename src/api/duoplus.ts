@@ -233,20 +233,36 @@ export interface TextNowRawAccount {
   raw: string;
 }
 
-/** 自动检测分隔符并解析5字段账号 */
+/** 自动检测格式并解析账号（支持 JSON 单行对象 和 5字段分隔符格式） */
 export function parseTxtAccounts(raw: string): TextNowRawAccount[] {
   const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
   const results: TextNowRawAccount[] = [];
 
   for (const line of lines) {
-    // 支持 | : ---- \t 空格 等分隔符
+    // ── 模式1: JSON 对象格式 {"phone":"...","username":"...","email":"...",...} ──
+    if (line.startsWith('{')) {
+      try {
+        const obj = JSON.parse(line) as Record<string, string>;
+        const phoneNumber = obj.phone || obj.phoneNumber || obj.phone_number || '';
+        const username    = obj.username || obj.user || '';
+        const email       = obj.email || '';
+        const password    = obj.password || obj.passwd || '';
+        const emailPassword = obj.emailPassword || obj.email_password || obj.emailPwd || '';
+        if (phoneNumber || username) {
+          results.push({ phoneNumber, username, password, email, emailPassword, raw: line });
+        }
+      } catch {
+        // JSON 解析失败，跳过
+      }
+      continue;
+    }
+
+    // ── 模式2: 5字段分隔符格式 ──
     let fields: string[] = [];
     if (line.includes('----')) {
       fields = line.split('----');
     } else if (line.includes('|')) {
       fields = line.split('|');
-    } else if (line.includes(':')) {
-      fields = line.split(':');
     } else if (line.includes('\t')) {
       fields = line.split('\t');
     } else {
@@ -254,14 +270,14 @@ export function parseTxtAccounts(raw: string): TextNowRawAccount[] {
     }
 
     fields = fields.map((f) => f.trim()).filter(Boolean);
-    if (fields.length < 5) continue;
+    if (fields.length < 2) continue;
 
     results.push({
-      phoneNumber: fields[0],
-      username: fields[1],
-      password: fields[2],
-      email: fields[3],
-      emailPassword: fields[4],
+      phoneNumber:   fields[0] || '',
+      username:      fields[1] || '',
+      password:      fields[2] || '',
+      email:         fields[3] || '',
+      emailPassword: fields[4] || '',
       raw: line,
     });
   }

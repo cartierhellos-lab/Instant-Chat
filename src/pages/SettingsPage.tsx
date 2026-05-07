@@ -49,7 +49,7 @@ function AdminPanel() {
       setSyncStatus('ok');
     } catch (error) {
       setSyncStatus('offline');
-      toast({ title: 'Sub-account sync failed', description: (error as Error).message || 'The database is unavailable right now. Check the Supabase configuration.' });
+      toast({ title: 'Sub-account sync failed', description: (error as Error).message || 'The database is unavailable right now. Check the Supabase 配置.' });
     }
   }, [selectedSub, setSubAccounts]);
 
@@ -83,7 +83,7 @@ function AdminPanel() {
       await refreshSubAccounts();
       toast({ title: 'Sub-account created', description: `A new access key was generated for "${newName.trim()}".` });
     } catch (error) {
-      toast({ title: 'Create failed', description: (error as Error).message || 'Database write failed. Check the Supabase configuration.' });
+      toast({ title: 'Create failed', description: (error as Error).message || 'Database write failed. Check the Supabase 配置.' });
     } finally {
       setSaving(false);
     }
@@ -102,7 +102,7 @@ function AdminPanel() {
       await refreshSubAccounts();
       toast({ title: 'Key regenerated', description: `A new key was generated for "${regenTarget.name}".` });
     } catch (error) {
-      toast({ title: 'Reset failed', description: (error as Error).message || 'Database write failed.' });
+      toast({ title: '重置 failed', description: (error as Error).message || 'Database write failed.' });
     } finally {
       setSaving(false);
       setRegenTarget(null);
@@ -120,7 +120,7 @@ function AdminPanel() {
       await refreshSubAccounts();
       toast({ title: 'Assignments saved', description: `Resource assignments for "${selectedSub.name}" were updated.` });
     } catch (error) {
-      toast({ title: 'Save failed', description: (error as Error).message || `Assignments for "${selectedSub.name}" could not be written to the database.` });
+      toast({ title: '保存 failed', description: (error as Error).message || `Assignments for "${selectedSub.name}" could not be written to the database.` });
     } finally {
       setSaving(false);
     }
@@ -195,7 +195,7 @@ function AdminPanel() {
               <div className="flex flex-col items-center justify-center h-40 text-center px-4">
                 <Users size={28} className="text-[#c7c7cc] mb-2" />
                 <p className="text-[12px] text-[#8e8e93]">
-                  {syncStatus === 'offline' ? 'Database offline. Sub-accounts are unavailable.' : 'No sub-accounts yet'}
+                  {syncStatus === 'offline' ? 'Database offline. Sub-accounts are unavailable.' : '暂无子账号 yet'}
                 </p>
               </div>
             ) : (
@@ -220,7 +220,7 @@ function AdminPanel() {
                           if (selectedSub?.id === sub.id) setSelectedSub(null);
                           toast({ title: 'Sub-account deleted', description: `"${sub.name}" was removed.` });
                         } catch (error) {
-                          toast({ title: 'Delete failed', description: (error as Error).message || `"${sub.name}" could not be deleted from the database.` });
+                          toast({ title: '删除 failed', description: (error as Error).message || `"${sub.name}" could not be deleted from the database.` });
                         } finally {
                           setSaving(false); }
                       }}
@@ -361,7 +361,7 @@ function AdminPanel() {
                 className="tool-btn tool-btn-primary h-9 w-full justify-center text-[14px] font-medium disabled:opacity-40"
               >
                 {saving ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
-                Save assignments
+                保存 assignments
               </button>
             </div>
           )}
@@ -440,7 +440,7 @@ export default function SettingsPage() {
     setTesting(true); setTestResult('idle'); setTestMsg('');
     try {
       const numbers = await fetchCloudNumbers(apiKey, region);
-      setTestResult('ok'); setTestMsg(`Connected successfully. Retrieved ${numbers.length} cloud numbers.`);
+      setTestResult('ok'); setTestMsg(`已连接 successfully. Retrieved ${numbers.length} cloud numbers.`);
     } catch (e) {
       setTestResult('fail'); setTestMsg((e as Error).message);
     } finally { setTesting(false); }
@@ -540,7 +540,7 @@ export default function SettingsPage() {
                 ? <Wifi className="w-4 h-4 shrink-0" />
                 : <AlertCircle className="w-4 h-4 shrink-0" />}
             <span className="font-medium">
-              {lastError ? 'Connection failed' : cloudNumbers.length > 0 ? `Connected · ${cloudNumbers.length} numbers` : 'Not connected'}
+              {lastError ? 'Connection failed' : cloudNumbers.length > 0 ? `已连接 · ${cloudNumbers.length} numbers` : '未连接'}
             </span>
             {lastError && <span className="ml-1 font-mono text-[11px] truncate">{lastError}</span>}
             {!lastError && settings.apiKey && cloudNumbers.length > 0 && (
@@ -571,7 +571,7 @@ export default function SettingsPage() {
                   className="tool-btn tool-btn-quiet h-7 px-3 text-[12px] disabled:opacity-40"
                 >
                   {testing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
-                  {testing ? 'Testing…' : 'Test connection'}
+                  {testing ? '测试中…' : 'Test connection'}
                 </button>
                 {testResult !== 'idle' && (
                   <span className={cn('flex items-center gap-1 text-[12px]', testResult === 'ok' ? 'text-[#34c759]' : 'text-[#ff3b30]')}>
@@ -625,7 +625,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-1.5">
-            <p className="ios-section-header">Translation engine</p>
+            <p className="ios-section-header">翻译Settings engine</p>
             <div className="tool-panel overflow-hidden p-0">
               <div className="ios-list-row">
                 <Languages className="w-4 h-4 text-[#8e8e93] shrink-0" />
@@ -659,7 +659,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="ios-list-row border-t border-[#f2f2f7] flex-col items-start gap-1.5">
-                    <label className="text-[12px] text-[#8e8e93]">Translation model</label>
+                    <label className="text-[12px] text-[#8e8e93]">翻译Settings model</label>
                     <div className="flex gap-1.5 w-full">
                       <input
                         value={ollamaModel}
@@ -686,7 +686,7 @@ export default function SettingsPage() {
                         const { testOllamaConnection } = await import('@/api/translate');
                         const r = await testOllamaConnection(ollamaUrl);
                         setOllamaTestResult(r.ok ? 'ok' : 'fail');
-                        setOllamaTestMsg(r.ok ? `Connected successfully, ${r.models.length} models found` : r.error ?? 'Connection failed');
+                        setOllamaTestMsg(r.ok ? `已连接 successfully, ${r.models.length} models found` : r.error ?? 'Connection failed');
                         if (r.ok) setOllamaModels(r.models);
                         setOllamaTesting(false);
                       }}
@@ -694,7 +694,7 @@ export default function SettingsPage() {
                       className="tool-btn tool-btn-quiet h-7 px-3 text-[12px] disabled:opacity-40"
                     >
                       {ollamaTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
-                      {ollamaTesting ? 'Testing…' : 'Test Ollama'}
+                      {ollamaTesting ? '测试中…' : 'Test Ollama'}
                     </button>
                     {ollamaTestResult !== 'idle' && (
                       <span className={cn('flex items-center gap-1 text-[12px]', ollamaTestResult === 'ok' ? 'text-[#34c759]' : 'text-[#ff3b30]')}>
@@ -761,7 +761,7 @@ export default function SettingsPage() {
                     className="tool-btn tool-btn-quiet h-7 px-3 text-[12px] disabled:opacity-40"
                   >
                     {marqueeSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                    Save notice
+                    保存 notice
                   </button>
                 </div>
               </div>
@@ -769,7 +769,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-1.5">
-            <p className="ios-section-header">Supabase</p>
+            <p className="ios-section-header">Supabase 云存储</p>
             <div className="tool-panel overflow-hidden p-0">
               <div className="ios-list-row">
                 <Database className="w-4 h-4 text-[#8e8e93] shrink-0" />
@@ -803,7 +803,7 @@ export default function SettingsPage() {
                   className="tool-btn tool-btn-quiet h-7 px-3 text-[12px] disabled:opacity-40"
                 >
                   {sbTesting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
-                  {sbTesting ? 'Testing…' : 'Test'}
+                  {sbTesting ? '测试中…' : 'Test'}
                 </button>
                 <button
                   onClick={handleSbSave}
@@ -815,7 +815,7 @@ export default function SettingsPage() {
                       : 'tool-btn-primary'
                   )}
                 >
-                  {sbSaved ? <><Check className="w-3.5 h-3.5" />Saved</> : <><Database className="w-3.5 h-3.5" />Save config</>}
+                  {sbSaved ? <><Check className="w-3.5 h-3.5" />保存d</> : <><Database className="w-3.5 h-3.5" />保存 config</>}
                 </button>
                 {sbTestResult !== 'idle' && (
                   <span className={cn('flex items-center gap-1 text-[12px]', sbTestResult === 'ok' ? 'text-[#34c759]' : 'text-[#ff3b30]')}>
@@ -838,7 +838,7 @@ export default function SettingsPage() {
                   : 'tool-btn-primary'
               )}
             >
-              {saved ? <><Check className="w-4 h-4" />Saved</> : <><Settings className="w-4 h-4" />Save and apply</>}
+              {saved ? <><Check className="w-4 h-4" />保存d</> : <><Settings className="w-4 h-4" />保存 and apply</>}
             </button>
             <span className="text-[12px] text-[#8e8e93] ml-auto">
               {currentRole === 'admin' ? '🔑 Admin' : '👤 Sub-account'} · {settings.apiKey ? maskApiKey(settings.apiKey) : 'Not configured'}

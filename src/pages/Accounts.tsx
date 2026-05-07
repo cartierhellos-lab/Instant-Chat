@@ -8,18 +8,18 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { toast } from '@/hooks/use-toast';
 
 const STATUS_FILTERS: { label: string; value: AccountStatus | 'all' }[] = [
-  { label: 'All', value: 'all' }, { label: 'Available', value: 'available' },
-  { label: 'Assigned', value: 'assigned' }, { label: 'Active', value: 'active' },
-  { label: 'Banned', value: 'banned' }, { label: 'Cooling', value: 'cooling' },
+  { label: '全部', value: 'all' }, { label: '可用', value: 'available' },
+  { label: '已分配', value: 'assigned' }, { label: '使用中', value: 'active' },
+  { label: '已封禁', value: 'banned' }, { label: '冷却中', value: 'cooling' },
 ];
 
 const ACCOUNT_STATUS_LABELS: Record<AccountStatus, string> = {
-  available: 'Available',
-  assigned: 'Assigned',
-  active: 'Active',
-  banned: 'Banned',
-  cooling: 'Cooling',
-  injecting: 'ADB Injecting',
+  available: '可用',
+  assigned: '已分配',
+  active: '使用中',
+  banned: '已封禁',
+  cooling: '冷却中',
+  injecting: 'ADB注入中',
 };
 
 // ─── 状态配色 ─────────────────────────────────────────────────────────────────
@@ -62,23 +62,23 @@ function ImportPanel({ onImported }: { onImported: (added: number, dup: number) 
   return (
     <div className="tool-panel rounded-[10px] p-3 space-y-2.5">
       <div className="flex items-center justify-between">
-        <span className="text-[12px] font-semibold text-[#1f2328]">Batch Import</span>
+        <span className="text-[12px] font-semibold text-[#1f2328]">批量导入</span>
         <button onClick={() => fileRef.current?.click()} className="tool-btn tool-btn-quiet h-6 px-2 text-[10px]">
-          <Upload className="w-3 h-3" />Choose TXT
+          <Upload className="w-3 h-3" />选择文件
         </button>
         <input ref={fileRef} type="file" accept=".txt" className="hidden" onChange={handleFile} />
       </div>
 
       <div className="rounded-[7px] border border-[#e3e6eb] bg-[#f6f7f9] p-2 text-[10px] text-[#6b7280] font-mono space-y-0.5">
-        <p className="font-semibold text-[#1f2328] text-[10px]">5-field format, one account per line</p>
-        <p>Phone | Username | Password | Email | Email Password</p>
+        <p className="font-semibold text-[#1f2328] text-[10px]">支持 JSON 格式 / 5字段格式（每行一条）</p>
+        <p>手机号 | 用户名 | 密码 | 邮箱 | 邮箱密码</p>
         <p className="text-[#2563eb]/80">+15551234567 | user | Pass@123 | u@gmail.com | gmailP</p>
       </div>
 
       <textarea
         value={text}
         onChange={e => setText(e.target.value)}
-        placeholder="Paste account data or choose a TXT file…"
+        placeholder="粘贴账号数据，或上传 TXT / JSON 文件…"
         rows={5}
         className="tool-textarea px-2.5 py-1.5 text-[11px] font-mono placeholder:text-[#9ca3af]"
       />
@@ -89,11 +89,11 @@ function ImportPanel({ onImported }: { onImported: (added: number, dup: number) 
           disabled={!text.trim()}
           className="tool-btn h-6 px-2 text-[10px] disabled:opacity-40"
         >
-          <Download className="w-3 h-3" />Parse & Import
+          <Download className="w-3 h-3" />解析并导入
         </button>
         {result && (
           <span className={cn('text-[10px]', result.added > 0 ? 'text-[#1f8f4d]' : 'text-[#6b7280]')}>
-            ✓ Added {result.added}, duplicates {result.duplicate}
+            ✓ 新增 {result.added} 条，重复 {result.duplicate} 条
           </span>
         )}
       </div>
@@ -117,10 +117,10 @@ function AdbTemplatePanel() {
     <div className="tool-panel rounded-[10px] p-3 space-y-2.5">
       <div className="flex items-center gap-1.5">
         <Terminal className="w-3.5 h-3.5 text-[#6b7280]" />
-        <span className="text-[12px] font-semibold text-[#1f2328]">ADB Template</span>
+        <span className="text-[12px] font-semibold text-[#1f2328]">ADB 注入模板</span>
       </div>
       <p className="text-[10px] text-[#6b7280] leading-relaxed">
-        Variables: <code className="text-[#2563eb]">{'{phone}'}</code>{' '}
+        可用变量: <code className="text-[#2563eb]">{'{phone}'}</code>{' '}
         <code className="text-[#2563eb]">{'{username}'}</code>{' '}
         <code className="text-[#2563eb]">{'{password}'}</code>{' '}
         <code className="text-[#2563eb]">{'{email}'}</code>{' '}
@@ -134,11 +134,11 @@ function AdbTemplatePanel() {
       />
       <div className="flex items-center gap-2">
         <button onClick={handleSave} className="tool-btn tool-btn-quiet h-6 px-2 text-[10px] font-medium">
-          {saved ? <><Check className="w-3 h-3 text-[#1f8f4d]" />Saved</> : 'Save Template'}
+          {saved ? <><Check className="w-3 h-3 text-[#1f8f4d]" />已保存</> : '保存模板'}
         </button>
         <button onClick={() => setTpl(DEFAULT_ADB_TEMPLATE)} className="text-[10px] text-[#2563eb] hover:underline">
           Reset
-        </button>
+          </button>
       </div>
     </div>
   );
@@ -186,26 +186,26 @@ export default function Accounts() {
     deleteSelected([...selected]);
     setSelected(new Set());
     setDeleteConfirmOpen(false);
-    toast({ title: 'Accounts deleted', description: `Deleted ${selected.size} account(s).` });
-    setStatusMsg(`Deleted ${selected.size} account(s)`);
+    toast({ title: '删除成功', description: `已删除 ${selected.size} 条账号。` });
+    setStatusMsg(`已删除 ${selected.size} 条账号`);
   };
 
   const handleInject = async (acc: TextNowAccount) => {
     if (!settings.apiKey) {
-      toast({ title: 'Missing API Key', description: 'Configure the CartierMiller API Key in Settings first.', variant: 'destructive' });
-      setStatusMsg('Configure the API Key first');
+      toast({ title: '缺少 API Key', description: '请先在设置中配置 CartierMiller API Key。', variant: 'destructive' });
+      setStatusMsg('请先配置 API Key');
       return;
     }
     if (!acc.assignedPhoneId) {
-      toast({ title: 'Cannot inject account', description: 'This account is not bound to a device yet.', variant: 'destructive' });
-      setStatusMsg('Account is not bound to a device');
+      toast({ title: '无法注入', description: '该账号尚未绑定设备。', variant: 'destructive' });
+      setStatusMsg('账号未绑定设备');
       return;
     }
     setInjectingId(acc.id);
     const r = await injectAccount(acc.assignedPhoneId, acc.id, settings.apiKey, settings.apiRegion, settings.adbCommandTemplate);
     setInjectingId(null);
-    toast({ title: r.success ? 'Injection succeeded' : 'Injection failed', description: r.message, variant: r.success ? 'default' : 'destructive' });
-    setStatusMsg(r.success ? 'Injection succeeded' : r.message);
+    toast({ title: r.success ? '注入成功' : '注入失败', description: r.message, variant: r.success ? 'default' : 'destructive' });
+    setStatusMsg(r.success ? '注入成功' : r.message);
   };
 
   const stats = {
@@ -220,9 +220,9 @@ export default function Accounts() {
         <div className="tool-toolbar h-10 px-3 flex items-center gap-2 shrink-0">
           <div className="flex flex-1 items-center gap-2 min-w-0">
             <Users className="h-4 w-4 text-[#2563eb]" />
-            <span className="text-[13px] font-semibold tracking-[0.01em] text-[#1f2328]">Accounts</span>
+            <span className="text-[13px] font-semibold tracking-[0.01em] text-[#1f2328]">账号资源</span>
             <span className="tool-chip text-[10px]">
-              {accounts.length} total · {stats.available} available · {stats.banned} banned
+              共 {accounts.length} 条 · {stats.available} 可用 · {stats.banned} 封禁
             </span>
           </div>
           {statusMsg && (
@@ -233,7 +233,7 @@ export default function Accounts() {
               onClick={handleDeleteSelected}
               className="tool-btn h-6 px-2 text-[10px] text-[#ef4444]"
             >
-              <Trash2 className="w-3.5 h-3.5" />Delete {selected.size}
+              <Trash2 className="w-3.5 h-3.5" />删除 {selected.size} 条
             </button>
           )}
         </div>
@@ -241,7 +241,7 @@ export default function Accounts() {
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* 左边栏 */}
           <div className="tool-sidebar w-64 shrink-0 h-full overflow-y-auto px-3 py-3 space-y-2.5 bg-[#eef1f4]">
-            <ImportPanel onImported={(a, d) => setImportMsg(`Imported ${a}, duplicates ${d}`)} />
+            <ImportPanel onImported={(a, d) => setImportMsg(`新增 ${a} 条，重复 ${d} 条`)} />
             {importMsg && (
               <div className="flex items-center gap-1.5 text-[11px] text-[#1f8f4d] bg-[#eef8f1] border border-[#bfdac8] rounded-[7px] px-2.5 py-1.5">
                 <Check className="w-3.5 h-3.5 shrink-0" />{importMsg}
@@ -249,11 +249,11 @@ export default function Accounts() {
             )}
 
             <div className="tool-panel rounded-[10px] p-3 space-y-1.5">
-              <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider mb-2">Account Stats</p>
+              <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider mb-2">账号统计</p>
               {[
-                { label: 'Available', count: stats.available, dotCls: 'ios-dot-online' },
-                { label: 'Assigned / Active', count: stats.assigned, dotCls: 'bg-[#007aff]' },
-                { label: 'Banned', count: stats.banned, dotCls: 'ios-dot-offline' },
+                { label: '可用', count: stats.available, dotCls: 'ios-dot-online' },
+                { label: '已分配/使用中', count: stats.assigned, dotCls: 'bg-[#007aff]' },
+                { label: '已封禁', count: stats.banned, dotCls: 'ios-dot-offline' },
               ].map(({ label, count, dotCls }) => (
                 <div key={label} className="px-0 py-0.5 flex items-center justify-between border-none">
                   <div className="flex items-center gap-2">
@@ -264,7 +264,7 @@ export default function Accounts() {
                 </div>
               ))}
               <p className="text-[10px] text-[#6b7280] pt-1 border-t border-[#e3e6eb]">
-                {cloudPhones.length} device(s) · up to {cloudPhones.length * 10} accounts
+                {cloudPhones.length} 台设备 · 最多 {cloudPhones.length * 10} 个槽位
               </p>
             </div>
 
@@ -279,7 +279,7 @@ export default function Accounts() {
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Search phone / username / email…"
+                  placeholder="搜索手机号 / 用户名 / 邮箱…"
                   className="tool-input h-7 pl-7 pr-3 w-48 text-[12px] placeholder:text-[#9ca3af]"
                 />
               </div>
@@ -307,7 +307,7 @@ export default function Accounts() {
                 <div className="tool-empty">
                   <AlertCircle className="w-8 h-8 text-[#c7c7cc] mb-2" />
                   <p className="text-[15px] font-medium text-[#8e8e93]">
-                    {accounts.length === 0 ? 'Import TextNow accounts from the left panel' : 'No matching results'}
+                    {accounts.length === 0 ? '请从左侧面板导入账号（支持 JSON / 5字段格式）' : '没有匹配的结果'}
                   </p>
                 </div>
               ) : (
@@ -321,7 +321,7 @@ export default function Accounts() {
                             : <Square className="w-4 h-4 text-[#9ca3af]" />}
                         </button>
                       </th>
-                      {['Phone', 'Username', 'Email', 'Status', 'Device', 'Imported', 'Actions'].map(h => (
+                      {['手机号', '用户名', '邮箱', '状态', '绑定设备', '导入时间', '操作'].map(h => (
                         <th
                           key={h}
                           className="px-3 py-1.5 text-left text-[10px] font-semibold text-[#6b7280] uppercase tracking-[0.04em] whitespace-nowrap"
@@ -384,19 +384,19 @@ export default function Accounts() {
                                   {injectingId === acc.id
                                     ? <RefreshCw className="w-3 h-3 animate-spin" />
                                     : <Zap className="w-3 h-3" />}
-                                  {injectingId === acc.id ? 'Injecting…' : 'Inject'}
+                                  {injectingId === acc.id ? '注入中…' : '注入'}
                                 </button>
                               )}
                               {acc.status !== 'banned' ? (
                                 <button
                                   onClick={() => markBanned(acc.id)}
                                   className="h-6 px-2 rounded-[6px] border border-[#d7dbe2] text-[10px] text-[#6b7280] hover:border-[#ef4444] hover:text-[#ef4444] transition-colors"
-                                >Ban</button>
+                                >封禁</button>
                               ) : (
                                 <button
                                   onClick={() => updateAccount(acc.id, { status: 'available', bannedAt: undefined })}
                                   className="h-6 px-2 rounded-[6px] border border-[#d7dbe2] text-[10px] text-[#6b7280] hover:border-[#1f8f4d] hover:text-[#1f8f4d] transition-colors"
-                                >Restore</button>
+                                >恢复</button>
                               )}
                             </div>
                           </td>
@@ -414,10 +414,10 @@ export default function Accounts() {
       <ConfirmDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
-        title="Delete selected accounts?"
-        description={`This will delete the selected ${selected.size} account(s), and it cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title="确认删除所选账号？"
+        description={`将删除已选中的 ${selected.size} 条账号，此操作不可撤销。`}
+        confirmText="删除"
+        cancelText="取消"
         destructive
         onConfirm={confirmDeleteSelected}
       />

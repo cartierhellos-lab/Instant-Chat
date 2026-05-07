@@ -5,7 +5,7 @@ import { useSettingsStore, useAdminStore, useChatStore } from '@/hooks/useStore'
 import { ROUTE_PATHS, ADMIN_HOSTNAME, USER_HOSTNAME, getHostMode } from '@/lib/index';
 import { getSubAccounts } from '@/api/supabase';
 
-export default function LoginPage() {
+export default function 登录Page() {
   const navigate = useNavigate();
   const { settings, updateSettings } = useSettingsStore();
   const { setRole, subAccounts, setSubAccounts, setRoleResolved } = useAdminStore();
@@ -55,10 +55,10 @@ export default function LoginPage() {
       }
     : hostMode === 'user'
       ? {
-          subtitle: '· 奥贝思维空间站 用户入口',
+          subtitle: '· 奥贝思维空间站 User入口',
           prompt: `输入子账号密钥访问分配资源。管理员请使用 ${ADMIN_HOSTNAME} 登录。`,
           footer: 'AOBESIWEI USER',
-          button: '进入用户系统',
+          button: '进入User系统',
           placeholder: '输入子账号密钥…',
         }
       : {
@@ -87,7 +87,7 @@ export default function LoginPage() {
     }
   }, [hostMode, isAdminSession, isUserSession, navigate, settings.accessKey]);
 
-  const handleLogin = async () => {
+  const handle登录 = async () => {
     const trimmed = key.trim();
     if (!trimmed) { setError('请输入访问密钥'); return; }
     setLoading(true);
@@ -191,7 +191,7 @@ export default function LoginPage() {
               type={show ? 'text' : 'password'}
               value={key}
               onChange={e => { setKey(e.target.value); setError(''); }}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              onKeyDown={e => e.key === 'Enter' && handle登录()}
               placeholder={hostCopy.placeholder}
               autoComplete="off"
               autoFocus
@@ -233,7 +233,7 @@ export default function LoginPage() {
             {hostCopy.prompt}
           </div>
           <button
-            onClick={handleLogin}
+            onClick={handle登录}
             disabled={loading || !key.trim()}
             className="ios-btn ios-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40"
             style={{ height: 36, fontSize: 13, borderRadius: 6 }}

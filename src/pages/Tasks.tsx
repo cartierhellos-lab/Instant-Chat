@@ -14,7 +14,7 @@ const STATUS_CONFIG: Record<string, { label: string; chipCls: string; dotCls: st
 
 const RESULT_STATUS = {
   pending: { label: '等待',   color: 'text-[#8e8e93]', icon: Clock },
-  running: { label: '发送中', color: 'text-[#ff9500]', icon: Loader },
+  running: { label: 'Send中', color: 'text-[#ff9500]', icon: Loader },
   success: { label: '成功',   color: 'text-[#34c759]', icon: CheckCircle },
   failed:  { label: '失败',   color: 'text-[#ff3b30]', icon: XCircle },
 } as const;
@@ -52,16 +52,16 @@ function TaskCard({ task }: { task: BroadcastTask }) {
       >
         <div className={cn(
           'w-7 h-7 rounded-[8px] flex items-center justify-center shrink-0 border',
-          task.status === 'completed' ? 'bg-[#eef8f1] border-[#bfdac8]'
+          task.status === '已完成' ? 'bg-[#eef8f1] border-[#bfdac8]'
           : task.status === 'running'   ? 'bg-[#fff7ed] border-[#fed7aa]'
-          : task.status === 'failed'    ? 'bg-[#fef2f2] border-[#fecaca]'
+          : task.status === '失败'    ? 'bg-[#fef2f2] border-[#fecaca]'
           : 'bg-[#f6f7f9] border-[#d7dbe2]'
         )}>
           <StatusIcon className={cn(
             'w-3.5 h-3.5',
-            task.status === 'completed' ? 'text-[#1f8f4d]'
+            task.status === '已完成' ? 'text-[#1f8f4d]'
             : task.status === 'running'   ? 'text-[#b45309] animate-spin'
-            : task.status === 'failed'    ? 'text-[#ef4444]'
+            : task.status === '失败'    ? 'text-[#ef4444]'
             : 'text-[#6b7280]'
           )} />
         </div>
@@ -99,10 +99,10 @@ function TaskCard({ task }: { task: BroadcastTask }) {
         </div>
       </div>
 
-      {(task.status === 'running' || task.status === 'completed') && (
+      {(task.status === 'running' || task.status === '已完成') && (
         <div className="px-3 pb-2.5">
           <div className="flex items-center justify-between text-[10px] text-[#6b7280] mb-1">
-            <span>发送进度</span>
+            <span>Send进度</span>
             <span className="font-mono">{task.progress}%</span>
           </div>
           <div className="h-1.5 rounded-full bg-[#f2f2f7] overflow-hidden flex">
@@ -120,7 +120,7 @@ function TaskCard({ task }: { task: BroadcastTask }) {
 
       {expanded && (
         <div className="px-3 pb-3 pt-2 border-t border-[#e3e6eb] bg-[#fbfbfc] space-y-1.5 animate-fade-up">
-          <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider mb-2">发送明细</p>
+          <p className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider mb-2">Send明细</p>
           {task.results.map((r, i) => <ResultRow key={`${r.numberId}-${i}`} result={r} />)}
         </div>
       )}
@@ -131,7 +131,7 @@ function TaskCard({ task }: { task: BroadcastTask }) {
 export default function Tasks() {
   const { tasks } = useTaskStore();
   const running = tasks.filter(t => t.status === 'running').length;
-  const done = tasks.filter(t => t.status === 'completed').length;
+  const done = tasks.filter(t => t.status === '已完成').length;
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-[#f3f4f6]">

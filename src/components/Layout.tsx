@@ -152,7 +152,7 @@ export default function Layout() {
     { path: ROUTE_PATHS.PHONES,     icon: Smartphone,    label: '设备',     show: true,       badge: 0 },
     { path: ROUTE_PATHS.TASKS,      icon: ListTodo,      label: '群发',     show: true,       badge: 0 },
     { path: '/whatsapp',            icon: MessageCircle, label: 'WhatsApp', show: isElectron, badge: waUnreadTotal },
-    { path: ROUTE_PATHS.SETTINGS,   icon: Settings,      label: '设置',     show: true,       badge: 0 },
+    { path: ROUTE_PATHS.SETTINGS,   icon: Settings,      label: 'Settings',     show: true,       badge: 0 },
   ];
 
   return (

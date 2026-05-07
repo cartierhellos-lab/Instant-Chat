@@ -7,7 +7,7 @@ import type { QueueItem } from '@/lib/index';
 
 interface Props {
   open: boolean;
-  onClose: () => void;
+  on关闭: () => void;
 }
 
 // 解析联系人号码（TXT/CSV，每行一个，支持逗号/制表符分隔）
@@ -19,7 +19,7 @@ function parseContactNumbers(raw: string): string[] {
     .filter((s) => s.length >= 7);
 }
 
-export default function BroadcastDialog({ open, onClose }: Props) {
+export default function 群发Dialog({ open, on关闭 }: Props) {
   const { settings } = useSettingsStore();
   const { cloudNumbers, cloudPhones } = useChatStore();
   const { accounts, bindings } = useAccountStore();
@@ -29,7 +29,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Step 1: message content
-  const [message, setMessage] = useState('');
+  const [message, set消息内容] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [imagePreview, setImagePreview] = useState('');
 
@@ -44,20 +44,20 @@ export default function BroadcastDialog({ open, onClose }: Props) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [taskName, setTaskName] = useState('');
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
-  const [sent, setSent] = useState(0);
+  const [已Send, setSent] = useState(0);
   const activeTask = tasks.find(t => t.id === activeTaskId);
   const running = activeTask?.status === 'running';
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
-    setStep(1); setMessage(''); setImageUrl(''); setImagePreview('');
+    setStep(1); set消息内容(''); setImageUrl(''); setImagePreview('');
     setContactRaw(''); setContacts([]); setSelectedSenders([]);
     setQueue([]); setTaskName(''); setActiveTaskId(null); setSent(0);
   };
 
   // 关闭弹窗不中断后台任务
-  const handleClose = () => { reset(); onClose(); };
+  const handle关闭 = () => { reset(); on关闭(); };
 
   // Handle local image selection → convert to data URL for preview
   const handleImageFile = (file: File) => {
@@ -203,7 +203,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4"
-        onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+        onClick={(e) => { if (e.target === e.currentTarget) handle关闭(); }}
       >
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
@@ -233,7 +233,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                   </button>
                 ))}
               </div>
-              <button onClick={handleClose} className="text-muted-foreground hover:text-foreground transition">
+              <button onClick={handle关闭} className="text-muted-foreground hover:text-foreground transition">
                 <X size={18} />
               </button>
             </div>
@@ -241,14 +241,14 @@ export default function BroadcastDialog({ open, onClose }: Props) {
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto p-6 bg-[linear-gradient(180deg,#ffffff_0%,#fafbfd_100%)]">
-            {/* ─── STEP 1: Message ─── */}
+            {/* ─── STEP 1: 消息内容 ─── */}
             {step === 1 && (
               <div className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1.5">消息内容 <span className="text-destructive">*</span></label>
                   <textarea
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e) => set消息内容(e.target.value)}
                     rows={5}
                     placeholder="输入要群发的消息内容..."
                     className="tool-textarea px-4 py-3 text-sm"
@@ -366,7 +366,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                 {/* Sender selection */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1.5">
-                    {mode === 'cloud_number' ? '发送号码' : '设备'} <span className="text-destructive">*</span>
+                    {mode === 'cloud_number' ? 'Send号码' : '设备'} <span className="text-destructive">*</span>
                     {selectedSenders.length > 0 && <span className="ml-2 text-primary text-xs">({selectedSenders.length} 已选)</span>}
                   </label>
 
@@ -436,7 +436,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                 <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-[12px] px-4 py-3">
                   <Clock size={16} className="text-amber-500 shrink-0" />
                   <div className="text-sm">
-                    <span className="font-medium text-amber-700">发送计划</span>
+                    <span className="font-medium text-amber-700">Send计划</span>
                     <span className="text-amber-600 ml-2">
                       共 {queue.length} 条消息，每轮间隔 {QUEUE_INTERVAL_MIN}–{QUEUE_INTERVAL_MAX}s，{queue.length > 1 ? durationLabel : '立即完成'}
                     </span>
@@ -454,12 +454,12 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                   <div className="bg-[linear-gradient(180deg,#fbfcfe_0%,#f2f5f8_100%)] rounded-[12px] p-3 border border-[#dbe2e9]">
                     <div className="flex items-center gap-2 mb-2">
                       <Loader2 size={14} className="text-primary animate-spin" />
-                      <span className="text-sm text-foreground font-medium">发送中… {sent}/{queue.length}</span>
+                      <span className="text-sm text-foreground font-medium">Send中… {已Send}/{queue.length}</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
                       <div
                         className="bg-primary h-2 rounded-full transition-all"
-                        style={{ width: `${Math.round((sent / queue.length) * 100)}%` }}
+                        style={{ width: `${Math.round((已Send / queue.length) * 100)}%` }}
                       />
                     </div>
                   </div>
@@ -481,7 +481,7 @@ export default function BroadcastDialog({ open, onClose }: Props) {
                         'bg-red-100 text-red-600'
                       )}>
                         {item.status === 'waiting' ? `等待 ${new Date(item.scheduledAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` :
-                         item.status === 'sending' ? '发送中' :
+                         item.status === 'sending' ? 'Send中' :
                          item.status === 'success' ? '成功' : '失败'}
                       </span>
                     </div>
