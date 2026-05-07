@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Send, RefreshCw, MessageSquare, Languages, Inbox, Image as ImageIcon, Smile } from 'lucide-react';
+import { Search, Plus, Send, RefreshCw, MessageSquare, Languages, Inbox, Image as ImageIcon, Smile, Paperclip, X } from 'lucide-react';
 import { useChatStore, useSettingsStore } from '@/hooks/useStore';
 import { cn, getInitials } from '@/lib/index';
 import { writeSmsByPhone } from '@/api/duoplus';
@@ -21,43 +21,62 @@ function formatMsgTime(iso: string): string {
   return `${date.getMonth() + 1}/${date.getDate()} ${hm}`;
 }
 
+// ─── 彩色头像色生成（按号码哈希） ────────────────────────────────────────────
+const AVATAR_COLORS = [
+  ['#FF6B6B', '#FF8E53'], ['#4FACFE', '#00F2FE'],
+  ['#43E97B', '#38F9D7'], ['#FA709A', '#FEE140'],
+  ['#A18CD1', '#FBC2EB'], ['#F093FB', '#F5576C'],
+  ['#4481EB', '#04BEFE'], ['#0BA360', '#3CBA92'],
+];
+function getAvatarGradient(str: string): string[] {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffff;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
 // ─── 会话列表项 ──────────────────────────────────────────────────────────────
 function ConvItem({ conv, isActive, onClick }: { conv: Conversation; isActive: boolean; onClick: () => void }) {
   const lastMsg = conv.lastMessage;
+  const num = conv.cloudNumber.number;
+  const [c1, c2] = getAvatarGradient(num);
   return (
     <div
       onClick={onClick}
       className={cn(
-        'tool-list-item flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors',
-        isActive ? 'bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)] inset-border' : 'hover:bg-white/70'
+        'flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors min-h-[60px]',
+        'border-b border-black/[0.04]',
+        isActive
+          ? 'bg-primary/[0.07]'
+          : 'hover:bg-black/[0.03]'
       )}
     >
-      {/* 头像 — 纯色圆形缩写 */}
-      <div className="relative shrink-0">
-        <div className="w-8 h-8 rounded-full bg-[linear-gradient(180deg,#f7f8fa_0%,#dfe4ea_100%)] flex items-center justify-center text-[10px] font-mono font-semibold text-foreground/60 border border-[#cfd5dc]">
-          {getInitials(conv.cloudNumber.number)}
-        </div>
-        {conv.cloudNumber.status === 'online' && (
-          <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-500 border border-white" />
-        )}
+      {/* 彩色数字头像 */}
+      <div
+        className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-[11px] font-mono font-bold text-white"
+        style={{ background: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)` }}
+      >
+        {getInitials(num)}
       </div>
 
       {/* 内容 */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <span className={cn('text-[12px] font-mono truncate', conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'text-foreground/80')}>
-            {conv.cloudNumber.name || conv.cloudNumber.number}
+        <div className="flex items-center justify-between gap-1">
+          <span className={cn(
+            'text-[13px] font-mono truncate',
+            conv.unreadCount > 0 ? 'font-semibold text-foreground' : 'font-medium text-foreground/80'
+          )}>
+            {conv.cloudNumber.name || num}
           </span>
-          <span className="text-[10px] text-muted-foreground ml-2 shrink-0 font-mono">
+          <span className="text-[10px] text-muted-foreground shrink-0">
             {conv.lastUpdated ? formatMsgTime(conv.lastUpdated) : ''}
           </span>
         </div>
-        <div className="flex items-center justify-between mt-0.5">
-          <p className="text-[11px] text-muted-foreground truncate max-w-[140px]">
+        <div className="flex items-center justify-between gap-1 mt-0.5">
+          <p className="text-[11px] text-muted-foreground truncate max-w-[150px]">
             {lastMsg ? (lastMsg.direction === 'outbound' ? '↑ ' : '↓ ') + lastMsg.message : '暂无消息'}
           </p>
           {conv.unreadCount > 0 && (
-            <span className="ml-1 shrink-0 min-w-[16px] h-4 px-1 rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center">
+            <span className="ios-badge shrink-0">
               {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
             </span>
           )}
@@ -67,7 +86,7 @@ function ConvItem({ conv, isActive, onClick }: { conv: Conversation; isActive: b
   );
 }
 
-// ─── 消息气泡 ────────────────────────────────────────────────────────────────
+// ─── 消息气泡状态图标 ─────────────────────────────────────────────────────────
 function StatusIcon({ status }: { status?: string }) {
   if (status === 'pending') return <RefreshCw className="w-2.5 h-2.5 animate-spin opacity-60" />;
   if (status === 'sent') return <span className="text-[10px] text-primary/70">✓✓</span>;
@@ -88,55 +107,54 @@ function MessageBubble({
 }) {
   const isOut = msg.direction === 'outbound';
   return (
-    <div className={cn('flex mb-1.5', isOut ? 'justify-end' : 'justify-start')}>
-      <div className={cn(
-        'max-w-[70%] px-3 py-1.5 rounded text-[12px] leading-relaxed',
-        isOut
-          ? 'bg-[linear-gradient(180deg,#3683ec_0%,#276bcc_100%)] text-white rounded-br-sm shadow-[0_1px_2px_rgba(0,0,0,0.08)]'
-          : 'bg-[linear-gradient(180deg,#ffffff_0%,#f7f9fb_100%)] text-foreground border border-[#d8dee6] rounded-bl-sm'
-      )}>
-        {msg.imageUrl && (
-          <img src={msg.imageUrl} alt="" className="max-w-full rounded mb-1.5 max-h-40 object-contain" />
+    <div className={cn('flex flex-col mb-1.5', isOut ? 'items-end' : 'items-start')}>
+      <div className={cn(isOut ? 'ios-bubble-out ml-auto' : 'ios-bubble-in mr-auto', 'max-w-[70%]')}>
+        {msg.mediaUrl && (
+          <img
+            src={msg.mediaUrl}
+            alt="图片"
+            className="rounded-lg mb-1.5 max-w-full max-h-48 object-cover"
+          />
         )}
-        <p className="break-words">{msg.message}</p>
-        {!isOut && (translating || translatedText) && (
-          <div className="mt-2 rounded-[8px] border border-primary/15 bg-primary/5 px-2 py-1.5">
-            <div className="flex items-center gap-1 text-[9px] text-primary/70 font-mono uppercase">
-              <Languages className="w-2.5 h-2.5" />
-              <span>{targetLang}</span>
-            </div>
-            <p className="mt-1 break-words text-[11px] text-foreground/80">
-              {translating ? '翻译中…' : translatedText}
-            </p>
-          </div>
-        )}
-        <div className={cn('flex items-center gap-1 mt-0.5 text-[10px]', isOut ? 'justify-end text-white/60' : 'text-muted-foreground')}>
-          <span className="font-mono">{formatMsgTime(msg.receivedAt)}</span>
+        <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+        <div className={cn('flex items-center gap-1 mt-1', isOut ? 'justify-end' : 'justify-start')}>
+          <span className="text-[10px] text-muted-foreground opacity-70">
+            {msg.sentAt ? formatMsgTime(msg.sentAt) : ''}
+          </span>
           {isOut && <StatusIcon status={msg.status} />}
         </div>
       </div>
+      {/* 翻译结果 */}
+      {!isOut && translating && (
+        <p className="text-[10px] text-muted-foreground italic mt-0.5 ml-1 animate-pulse">翻译中…</p>
+      )}
+      {!isOut && translatedText && !translating && (
+        <p className="text-[10px] text-muted-foreground italic mt-0.5 ml-1">{translatedText}</p>
+      )}
     </div>
   );
 }
 
-// ─── 语言列表 ────────────────────────────────────────────────────────────────
-const LANGS = [
-  { code: 'en', label: 'English' }, { code: 'zh', label: '中文' },
-  { code: 'es', label: 'Español' }, { code: 'fr', label: 'Français' },
-  { code: 'pt', label: 'Português' }, { code: 'ar', label: 'العربية' },
-  { code: 'ru', label: 'Русский' }, { code: 'ja', label: '日本語' },
-  { code: 'ko', label: '한국어' }, { code: 'hi', label: 'हिन्दी' },
+// ─── 语言选项 ─────────────────────────────────────────────────────────────────
+const LANG_OPTIONS = [
+  { value: 'en', label: '英文' },
+  { value: 'zh-CN', label: '中文' },
+  { value: 'es', label: '西班牙语' },
+  { value: 'ar', label: '阿拉伯语' },
+  { value: 'ru', label: '俄语' },
+  { value: 'pt', label: '葡萄牙语' },
+  { value: 'fr', label: '法语' },
 ];
 
-// ─── 聊天面板 ────────────────────────────────────────────────────────────────
-function ChatPanel({ conv }: { conv: Conversation }) {
+// ─── 聊天区 ──────────────────────────────────────────────────────────────────
+function ChatArea({ conv }: { conv: Conversation }) {
   const { settings } = useSettingsStore();
-  const { sendOutboundMessage, pollMessages } = useChatStore();
+  const { markRead, addMessage } = useChatStore();
   const [input, setInput] = useState('');
+  const [translated, setTranslated] = useState('');
   const [sending, setSending] = useState(false);
   const [translateOn, setTranslateOn] = useState(false);
   const [targetLang, setTargetLang] = useState('en');
-  const [translated, setTranslated] = useState('');
   const [translating, setTranslating] = useState(false);
   const [translateEngine, setTranslateEngine] = useState('');
   const [langOpen, setLangOpen] = useState(false);
@@ -181,18 +199,13 @@ function ChatPanel({ conv }: { conv: Conversation }) {
 
   useEffect(() => {
     if (!translateOn) return;
-
     conv.messages
       .filter((msg) => msg.direction === 'inbound' && !!msg.message.trim())
       .forEach((msg) => {
         const cacheKey = `${msg.id}:${targetLang}`;
-        if (inboundTranslations[cacheKey] !== undefined || inflightTranslations.current.has(cacheKey)) {
-          return;
-        }
-
+        if (inboundTranslations[cacheKey] !== undefined || inflightTranslations.current.has(cacheKey)) return;
         inflightTranslations.current.add(cacheKey);
         setTranslatingIds((current) => ({ ...current, [cacheKey]: true }));
-
         void translateText(msg.message, {
           engine: settings.translateEngine ?? 'mymemory',
           ollamaUrl: settings.ollamaUrl,
@@ -211,18 +224,14 @@ function ChatPanel({ conv }: { conv: Conversation }) {
 
   useEffect(() => {
     return () => {
-      if (selectedImage?.url?.startsWith('blob:')) {
-        URL.revokeObjectURL(selectedImage.url);
-      }
+      if (selectedImage?.url?.startsWith('blob:')) URL.revokeObjectURL(selectedImage.url);
     };
   }, [selectedImage]);
 
   const handlePickImage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (selectedImage?.url?.startsWith('blob:')) {
-      URL.revokeObjectURL(selectedImage.url);
-    }
+    if (selectedImage?.url?.startsWith('blob:')) URL.revokeObjectURL(selectedImage.url);
     const url = URL.createObjectURL(file);
     setSelectedImage({ name: file.name, url });
     event.target.value = '';
@@ -232,7 +241,6 @@ function ChatPanel({ conv }: { conv: Conversation }) {
     const text = (useTranslated ? translated : input).trim();
     if ((!text && !selectedImage) || sending) return;
     const previewImage = selectedImage;
-    const payloadText = text;
     if (previewImage) {
       toast({
         title: '外部通道图片尚未接通',
@@ -245,39 +253,59 @@ function ChatPanel({ conv }: { conv: Conversation }) {
     setSending(true);
     try {
       if (settings.apiKey) {
-        await writeSmsByPhone(settings.apiKey, settings.apiRegion, conv.cloudNumber.id, [
-          { phone: conv.contactNumber, message: payloadText },
-        ]);
+        await writeSmsByPhone(settings.apiKey, settings.apiRegion, conv.cloudNumber.number, conv.contactNumber, text);
       }
-      sendOutboundMessage(conv.id, payloadText);
-      if (settings.apiKey) setTimeout(() => pollMessages(settings.apiKey, settings.apiRegion), 2000);
-    } catch {
-      sendOutboundMessage(conv.id, payloadText);
+      addMessage(conv.id, {
+        id: `msg-${Date.now()}`,
+        direction: 'outbound',
+        message: text,
+        sentAt: new Date().toISOString(),
+        status: 'sent',
+      });
+    } catch (err) {
+      toast({ title: '发送失败', description: (err as Error).message, variant: 'destructive' });
     } finally {
       setSending(false);
     }
   };
 
+  const currentLangLabel = LANG_OPTIONS.find(l => l.value === targetLang)?.label ?? targetLang;
+
   return (
-    <div className="flex flex-col h-full bg-[linear-gradient(180deg,#fafbfd_0%,#f2f5f8_100%)]">
-      {/* 顶部信息栏 */}
-      <div className="tool-toolbar flex items-center gap-2.5 px-4 py-2 shrink-0">
-        <div className="w-7 h-7 rounded-full bg-[linear-gradient(180deg,#f7f8fa_0%,#dfe4ea_100%)] flex items-center justify-center text-[10px] font-mono font-semibold text-foreground/60 border border-[#cfd5dc]">
-          {getInitials(conv.cloudNumber.number)}
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* 顶栏 */}
+      <div className="ios-nav-bar h-12 px-4 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[15px] font-semibold text-foreground truncate font-mono">
+            {conv.cloudNumber.name || conv.cloudNumber.number}
+          </span>
+          <span className="text-[11px] text-muted-foreground">→ {conv.contactNumber || '未知'}</span>
         </div>
-        <div className="flex-1 min-w-0">
-          <span className="text-[12px] font-semibold font-mono text-foreground">{conv.cloudNumber.name || conv.cloudNumber.number}</span>
-          <span className="text-[10px] text-muted-foreground ml-2">→ {conv.contactNumber || '未知'}</span>
+        {/* 翻译 toggle */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[11px] text-muted-foreground">翻译</span>
+          <button
+            type="button"
+            onClick={() => setTranslateOn(v => !v)}
+            className={cn(
+              'relative inline-flex h-[22px] w-[38px] rounded-full border-2 border-transparent transition-colors duration-200',
+              translateOn ? 'bg-primary' : 'bg-black/20'
+            )}
+          >
+            <span className={cn(
+              'inline-block h-[18px] w-[18px] rounded-full bg-white shadow transition-transform duration-200',
+              translateOn ? 'translate-x-[16px]' : 'translate-x-0'
+            )} />
+          </button>
         </div>
-        <span className="text-[10px] text-muted-foreground font-mono">{conv.messages.length} 条</span>
       </div>
 
       {/* 消息区 */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
         {conv.messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <MessageSquare className="w-8 h-8 text-muted-foreground/20 mb-2" />
-            <p className="text-[11px] text-muted-foreground">暂无消息记录</p>
+            <MessageSquare className="w-10 h-10 text-muted-foreground/20 mb-3" />
+            <p className="text-[12px] text-muted-foreground">暂无消息记录</p>
           </div>
         ) : (
           conv.messages.map((msg) => {
@@ -298,19 +326,19 @@ function ChatPanel({ conv }: { conv: Conversation }) {
 
       {/* 翻译预览栏 */}
       {translateOn && input.trim() && (
-        <div className="px-4 py-2 border-t border-[#dde3ea] bg-[linear-gradient(180deg,#f8fafc_0%,#eef2f6_100%)] text-[11px]">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">
+        <div className="px-4 py-2 border-t border-black/[0.06] bg-white/60 backdrop-blur-sm text-[11px]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground flex-1 truncate">
               {translating ? '翻译中…' : translated || '—'}
               {translateEngine && !translating && (
-                <span className="ml-2 text-[9px] text-primary/60 font-mono">[{translateEngine}]</span>
+                <span className="ml-1.5 text-[9px] text-primary/60 font-mono">[{translateEngine}]</span>
               )}
             </span>
             {translated && !translating && (
               <button
                 onClick={() => handleSend(true)}
                 disabled={sending}
-                className="tool-btn h-5 px-2 text-[10px] bg-[linear-gradient(180deg,#3ba96f_0%,#2d8c5a_100%)] text-white border-transparent hover:opacity-90 disabled:opacity-50"
+                className="tool-btn-primary h-6 px-2.5 text-[10px] rounded-full flex items-center gap-1 shrink-0"
               >
                 <Send size={9} /> 发译文
               </button>
@@ -319,108 +347,101 @@ function ChatPanel({ conv }: { conv: Conversation }) {
         </div>
       )}
 
-      {/* 输入区 */}
-      <div className="tool-toolbar px-3 py-2 shrink-0">
-        <div className="flex items-center gap-2 mb-1.5">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handlePickImage}
-          />
+      {/* 图片预览 */}
+      {selectedImage && (
+        <div className="mx-3 mb-1.5 flex items-center gap-2 rounded-xl border border-black/[0.08] bg-white/80 px-3 py-2">
+          <img src={selectedImage.url} alt={selectedImage.name} className="h-12 w-12 rounded-lg object-cover border border-black/[0.06]" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[11px] text-foreground font-medium">{selectedImage.name}</p>
+            <p className="text-[10px] text-muted-foreground">图片发送需走 DuoPlus 自动化流程</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { if (selectedImage.url.startsWith('blob:')) URL.revokeObjectURL(selectedImage.url); setSelectedImage(null); }}
+            className="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center hover:bg-black/20 transition"
+          >
+            <X size={11} />
+          </button>
+        </div>
+      )}
+
+      {/* 底部输入栏 */}
+      <div className="ios-input-bar px-3 py-2.5 shrink-0">
+        {/* 工具行 */}
+        <div className="flex items-center gap-2 mb-2">
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePickImage} />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center justify-center w-5 h-5 rounded-[6px] text-muted-foreground border border-[#cdd4dc] bg-white hover:border-primary hover:text-primary transition"
+            className="tool-btn-quiet w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground"
             title="选择图片"
           >
-            <ImageIcon size={11} />
+            <ImageIcon size={13} />
           </button>
           <button
             type="button"
-            onClick={() => setInput((current) => `${current}${current ? ' ' : ''}😊`)}
-            className="inline-flex items-center justify-center w-5 h-5 rounded-[6px] text-muted-foreground border border-[#cdd4dc] bg-white hover:border-primary hover:text-primary transition"
+            onClick={() => setInput((v) => `${v}${v ? ' ' : ''}😊`)}
+            className="tool-btn-quiet w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground"
             title="插入表情"
           >
-            <Smile size={11} />
+            <Smile size={13} />
           </button>
+
+          {/* 语言 Popover */}
           <Popover open={langOpen} onOpenChange={setLangOpen}>
             <PopoverTrigger asChild>
               <button
                 type="button"
                 onClick={() => setTranslateOn(true)}
                 className={cn(
-                  'inline-flex items-center justify-center w-5 h-5 rounded-[6px] transition border',
+                  'inline-flex items-center gap-1 h-6 px-2 rounded-full text-[10px] font-medium transition border',
                   translateOn
-                    ? 'bg-[linear-gradient(180deg,#3683ec_0%,#276bcc_100%)] text-white border-transparent'
-                    : 'bg-white text-muted-foreground border-[#cdd4dc] hover:border-primary hover:text-primary'
+                    ? 'bg-primary text-white border-primary'
+                    : 'bg-white text-muted-foreground border-black/[0.1] hover:border-primary hover:text-primary'
                 )}
-                title="翻译语言"
               >
                 <Languages size={11} />
+                {currentLangLabel}
               </button>
             </PopoverTrigger>
-            <PopoverContent align="start" side="top" className="w-44 p-1">
-              <div className="max-h-56 overflow-y-auto">
-                {LANGS.map((lang) => (
-                  <button
-                    key={lang.code}
-                    type="button"
-                    onClick={() => {
-                      setTranslateOn(true);
-                      setTargetLang(lang.code);
-                      setLangOpen(false);
-                    }}
-                    className={cn(
-                      'flex w-full items-center rounded-[8px] px-2 py-1.5 text-left text-[11px] transition',
-                      targetLang === lang.code
-                        ? 'bg-primary text-white'
-                        : 'text-foreground hover:bg-accent'
-                    )}
-                  >
-                    {lang.label}
-                  </button>
-                ))}
-              </div>
+            <PopoverContent side="top" align="start" className="w-44 p-1.5 rounded-xl shadow-lg border border-black/[0.08]">
+              {LANG_OPTIONS.map(lang => (
+                <button
+                  key={lang.value}
+                  onClick={() => { setTargetLang(lang.value); setLangOpen(false); }}
+                  className={cn(
+                    'w-full text-left px-3 py-1.5 rounded-lg text-[12px] transition-colors',
+                    lang.value === targetLang
+                      ? 'bg-primary/10 text-primary font-semibold'
+                      : 'text-foreground hover:bg-black/[0.04]'
+                  )}
+                >
+                  {lang.label}
+                </button>
+              ))}
             </PopoverContent>
           </Popover>
-          <span className="ml-auto text-[9px] text-muted-foreground">Enter 发送 · Shift+Enter 换行</span>
+
+          <span className="ml-auto text-[9px] text-muted-foreground/60">Enter 发送 · Shift+Enter 换行</span>
         </div>
-        {selectedImage && (
-          <div className="mb-2 flex items-center gap-2 rounded-[10px] border border-[#d8dee6] bg-white px-2 py-2">
-            <img src={selectedImage.url} alt={selectedImage.name} className="h-12 w-12 rounded object-cover border border-[#d8dee6]" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[11px] text-foreground">{selectedImage.name}</p>
-              <p className="text-[10px] text-muted-foreground">外部号码图片发送需走 DuoPlus 自动化流程，当前仅保留选图入口</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (selectedImage.url.startsWith('blob:')) {
-                  URL.revokeObjectURL(selectedImage.url);
-                }
-                setSelectedImage(null);
-              }}
-              className="tool-btn h-6 px-2 text-[10px]"
-            >
-              移除
-            </button>
-          </div>
-        )}
+
+        {/* 输入行 */}
         <div className="flex items-end gap-2">
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder="输入消息…"
-            rows={2}
-            className="tool-textarea flex-1 px-3 py-1.5 min-h-[44px] max-h-24 placeholder:text-muted-foreground/50"
-          />
+          <div className="ios-input-bubble flex-1 min-h-[38px] max-h-32 overflow-auto">
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+              placeholder="输入消息…"
+              rows={1}
+              className="w-full bg-transparent resize-none outline-none text-[13px] text-foreground placeholder:text-muted-foreground/40 leading-relaxed"
+              style={{ minHeight: 22 }}
+            />
+          </div>
           <button
             onClick={() => handleSend(false)}
             disabled={(!input.trim() && !selectedImage) || sending}
-            className="tool-btn tool-btn-primary flex items-center justify-center w-9 h-9 px-0 rounded-[10px] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            className="ios-send-btn shrink-0"
           >
             {sending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
           </button>
@@ -433,9 +454,9 @@ function ChatPanel({ conv }: { conv: Conversation }) {
 // ─── 空状态 ──────────────────────────────────────────────────────────────────
 function EmptyChat() {
   return (
-    <div className="tool-empty h-full bg-[linear-gradient(180deg,#fafbfd_0%,#f2f5f8_100%)]">
-      <MessageSquare className="w-10 h-10 text-muted-foreground/15 mb-3" />
-      <p className="text-[12px] text-muted-foreground">从左侧选择号码开始聊天</p>
+    <div className="tool-empty h-full bg-[var(--background)]">
+      <MessageSquare className="w-12 h-12 text-muted-foreground/20 mb-3" />
+      <p className="text-[13px] text-muted-foreground">从左侧选择号码开始聊天</p>
     </div>
   );
 }
@@ -455,7 +476,7 @@ function applyFilter(convs: Conversation[], f: ConvFilter) {
   return convs;
 }
 
-// ─── 主页 ─────────────────────────────────────────────────────────────────
+// ─── 主页 ─────────────────────────────────────────────────────────────────────
 export default function Home() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<ConvFilter>('all');
@@ -476,56 +497,62 @@ export default function Home() {
 
   return (
     <>
+      {showBroadcast && <BroadcastDialog onClose={() => setShowBroadcast(false)} />}
+
       {/* ── 左栏：会话列表 ─────────────────────────────────────── */}
-      <div className="tool-sidebar w-[260px] shrink-0 h-full flex flex-col">
-
-        {/* 搜索 + 群发 */}
-        <div className="tool-toolbar px-2 py-2 space-y-1.5 shrink-0">
-          <div className="flex items-center gap-1.5">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/60" />
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="搜索号码…"
-                className="tool-input h-6 pl-6 pr-2 text-[11px] placeholder:text-muted-foreground/40"
-              />
-            </div>
-            <button
-              onClick={() => setShowBroadcast(true)}
-              className="tool-btn tool-btn-primary h-6 px-2 text-[10px] shrink-0"
-            >
-              <Plus size={10} /> 群发
-            </button>
+      <div
+        className="shrink-0 h-full flex flex-col bg-white/80"
+        style={{ width: 260, borderRight: '0.5px solid rgba(0,0,0,0.09)' }}
+      >
+        {/* 搜索栏 */}
+        <div
+          className="h-12 px-3 flex items-center gap-2 shrink-0"
+          style={{ borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}
+        >
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="搜索"
+              className="tool-input h-8 w-full pl-8 pr-3 rounded-full text-[13px] placeholder:text-muted-foreground/50"
+            />
           </div>
+          <button
+            onClick={() => setShowBroadcast(true)}
+            className="tool-btn-primary h-8 w-8 rounded-full flex items-center justify-center shrink-0"
+            title="群发"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
 
-          {/* 筛选 tabs */}
-          <div className="flex gap-0.5">
-            {CONV_FILTERS.map(({ value, label }) => {
-              const cnt = value === 'all' ? conversations.length : applyFilter(conversations, value).length;
-              return (
-                <button
-                  key={value}
-                  onClick={() => setFilter(value)}
-                  className={cn(
-                    'flex-1 h-5 text-[10px] font-medium rounded-[6px] transition-colors border',
-                    filter === value
-                      ? 'bg-[linear-gradient(180deg,#3683ec_0%,#276bcc_100%)] text-white border-transparent'
-                      : 'bg-white text-muted-foreground border-[#cdd4dc] hover:border-primary hover:text-primary'
-                  )}
-                >
-                  {label}{cnt > 0 ? ` ${cnt}` : ''}
-                </button>
-              );
-            })}
-          </div>
+        {/* 筛选 tabs */}
+        <div className="flex items-center gap-0.5 px-2 py-1.5 shrink-0">
+          {CONV_FILTERS.map(({ value, label }) => {
+            const cnt = value === 'all' ? conversations.length : applyFilter(conversations, value).length;
+            return (
+              <button
+                key={value}
+                onClick={() => setFilter(value)}
+                className={cn(
+                  'flex-1 h-6 text-[10px] font-medium rounded-full transition-colors',
+                  filter === value
+                    ? 'tool-tab-active'
+                    : 'tool-tab'
+                )}
+              >
+                {label}{cnt > 0 ? ` ${cnt}` : ''}
+              </button>
+            );
+          })}
         </div>
 
         {/* 列表 */}
         <div className="flex-1 overflow-y-auto">
           {sorted.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center px-4">
-              <Inbox className="w-6 h-6 text-muted-foreground/20 mb-2" />
+              <Inbox className="w-7 h-7 text-muted-foreground/20 mb-2" />
               <p className="text-[11px] text-muted-foreground">
                 {conversations.length === 0 ? '请配置 API Key' : '无匹配结果'}
               </p>
@@ -541,17 +568,15 @@ export default function Home() {
         </div>
 
         {/* 底部计数 */}
-        <div className="tool-toolbar px-3 py-1.5 shrink-0">
+        <div className="px-3 py-2 shrink-0" style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
           <p className="text-[9px] text-muted-foreground font-mono">{conversations.length} 个号码 · 自动轮询</p>
         </div>
       </div>
 
       {/* ── 右栏：聊天 ─────────────────────────────────────────── */}
-      <div className="flex-1 h-full min-w-0">
-        {activeConv ? <ChatPanel conv={activeConv} /> : <EmptyChat />}
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ background: 'var(--background)' }}>
+        {activeConv ? <ChatArea conv={activeConv} /> : <EmptyChat />}
       </div>
-
-      <BroadcastDialog open={showBroadcast} onClose={() => setShowBroadcast(false)} />
     </>
   );
 }

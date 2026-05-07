@@ -200,236 +200,246 @@ export default function TranslatorPage() {
   };
 
   return (
-    <div className="translator-workbench flex min-h-0 flex-1 overflow-hidden">
-      <aside className="tool-sidebar translator-sidebar shrink-0 overflow-y-auto p-3">
-        <div className="tool-panel p-3 space-y-3">
-          <div>
+    <div className="translator-workbench flex min-h-0 flex-1 overflow-hidden" style={{ background: 'var(--background)' }}>
+
+      {/* ── 左侧工具栏 ── */}
+      <aside
+        className="tool-sidebar translator-sidebar shrink-0 flex flex-col overflow-y-auto"
+        style={{ borderRight: '0.5px solid rgba(0,0,0,0.08)' }}
+      >
+        <div className="p-3 space-y-3">
+
+          {/* 工作台说明 */}
+          <div className="px-1">
             <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
-              <Languages size={15} />
+              <Languages size={14} className="text-primary" />
               <span>翻译工作台</span>
             </div>
-            <p className="mt-1.5 text-[10px] leading-5 text-muted-foreground">
-              集中处理跨应用回复、客户沟通和多语种润色。模板和翻译记录会保存在本地工作区。
+            <p className="mt-1 text-[10px] leading-5 text-muted-foreground">
+              集中处理跨应用回复、客户沟通和多语种润色。
             </p>
           </div>
 
-          <div className="tool-surface p-3 space-y-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold text-foreground">快速模板</p>
-              <span className="text-[10px] text-muted-foreground">{templates.length} 条</span>
+          {/* 快速模板区 */}
+          <section>
+            <div className="ios-section-header flex items-center justify-between mb-1">
+              <span>快速模板</span>
+              <span className="text-muted-foreground">{templates.length} 条</span>
             </div>
-            <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
+            <div className="ios-card-grouped space-y-px">
+              {templates.length === 0 && (
+                <div className="ios-list-row text-[10px] text-muted-foreground">暂无模板</div>
+              )}
               {templates.map((item) => (
-                <div key={item.id} className="tool-list-item tool-record rounded-[9px] px-2.5 py-2">
-                  <button
-                    onClick={() => setSourceText(item.source)}
-                    className="w-full text-left"
-                  >
-                    <p className="text-[10px] font-semibold text-foreground">{item.title}</p>
-                    <p className="mt-1 line-clamp-2 text-[10px] leading-5 text-muted-foreground">{item.source}</p>
+                <div key={item.id} className="ios-list-row flex-col items-start gap-1 min-h-[44px] py-2">
+                  <button onClick={() => setSourceText(item.source)} className="w-full text-left">
+                    <p className="text-[11px] font-semibold text-foreground">{item.title}</p>
+                    <p className="mt-0.5 line-clamp-2 text-[10px] text-muted-foreground leading-5">{item.source}</p>
                   </button>
-                  <div className="mt-1.5 flex justify-end">
-                    <button
-                      onClick={() => deleteTemplate(item.id)}
-                      className="tool-btn h-6 px-2 text-[9px] font-medium text-red-500"
-                    >
-                      <Trash2 size={11} />
-                      删除
+                  <div className="flex justify-end w-full">
+                    <button onClick={() => deleteTemplate(item.id)} className="tool-btn h-5 px-2 text-[9px] text-red-500">
+                      <Trash2 size={10} /> 删除
                     </button>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
-          <div className="tool-surface-soft p-3 space-y-2">
+          {/* 新建模板 */}
+          <div className="ios-card rounded-xl p-3 space-y-2">
             <p className="text-[11px] font-semibold text-foreground">新建模板</p>
             <input
               value={newTemplateTitle}
               onChange={(e) => setNewTemplateTitle(e.target.value)}
               placeholder="模板标题，例如：首次开场"
-              className="tool-input h-8 w-full px-2 text-[11px]"
+              className="tool-input h-8 w-full px-2.5 text-[11px]"
             />
             <textarea
               value={newTemplateText}
               onChange={(e) => setNewTemplateText(e.target.value)}
               placeholder="输入常用回复内容…"
-              className="tool-textarea h-24 w-full resize-none px-2 py-2 text-[11px] leading-5"
+              className="tool-textarea h-20 w-full resize-none px-2.5 py-2 text-[11px] leading-5"
             />
             <button
               onClick={handleAddTemplate}
               disabled={!newTemplateText.trim()}
               className="tool-btn tool-btn-primary h-8 w-full text-[11px] font-semibold disabled:opacity-40"
             >
-              <Plus size={12} />
-              保存模板
+              <Plus size={12} /> 保存模板
             </button>
           </div>
 
-          <div className="tool-surface p-3 space-y-2">
-            <p className="text-[11px] font-semibold text-foreground">术语替换</p>
-            <div className="space-y-1.5 max-h-[140px] overflow-y-auto">
+          {/* 术语表区 */}
+          <section>
+            <div className="ios-section-header mb-1">术语替换</div>
+            <div className="ios-card-grouped space-y-px">
+              {glossary.length === 0 && (
+                <div className="ios-list-row text-[10px] text-muted-foreground">暂无术语</div>
+              )}
               {glossary.map((item) => (
-                <div key={item.id} className="tool-list-item tool-record rounded-[9px] px-2.5 py-2">
-                  <div className="text-[10px] font-semibold text-foreground">{item.source}</div>
-                  <div className="mt-1 text-[10px] text-muted-foreground">{item.target}</div>
-                  <div className="mt-1.5 flex justify-end">
-                    <button
-                      onClick={() => deleteGlossaryRule(item.id)}
-                      className="tool-btn h-6 px-2 text-[9px] font-medium text-red-500"
-                    >
-                      <Trash2 size={11} />
-                      删除
+                <div key={item.id} className="ios-list-row flex-col items-start gap-0.5 min-h-[44px] py-2">
+                  <div className="text-[11px] font-semibold text-foreground">{item.source}</div>
+                  <div className="text-[10px] text-muted-foreground">→ {item.target}</div>
+                  <div className="flex justify-end w-full mt-1">
+                    <button onClick={() => deleteGlossaryRule(item.id)} className="tool-btn h-5 px-2 text-[9px] text-red-500">
+                      <Trash2 size={10} /> 删除
                     </button>
                   </div>
                 </div>
               ))}
             </div>
+          </section>
+
+          {/* 新增术语 */}
+          <div className="ios-card rounded-xl p-3 space-y-2">
             <input
               value={newGlossarySource}
               onChange={(e) => setNewGlossarySource(e.target.value)}
               placeholder="原词，例如：WhatsApp"
-              className="tool-input h-8 w-full px-2 text-[11px]"
+              className="tool-input h-8 w-full px-2.5 text-[11px]"
             />
             <input
               value={newGlossaryTarget}
               onChange={(e) => setNewGlossaryTarget(e.target.value)}
               placeholder="固定替换，例如：WhatsApp Business"
-              className="tool-input h-8 w-full px-2 text-[11px]"
+              className="tool-input h-8 w-full px-2.5 text-[11px]"
             />
             <button
               onClick={handleAddGlossary}
               disabled={!newGlossarySource.trim() || !newGlossaryTarget.trim()}
               className="tool-btn h-8 w-full text-[11px] font-semibold disabled:opacity-40"
             >
-              <Plus size={12} />
-              添加术语
+              <Plus size={12} /> 添加术语
             </button>
           </div>
+
         </div>
       </aside>
 
+      {/* ── 右侧主区 ── */}
       <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="tool-toolbar flex items-center gap-3 px-4 py-2 shrink-0">
+
+        {/* 顶部工具栏 */}
+        <div
+          className="flex items-center gap-3 px-4 py-2 shrink-0 bg-white/70 backdrop-blur-sm"
+          style={{ borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}
+        >
           <Languages className="h-4 w-4 text-primary" />
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold text-foreground">实时翻译中控</p>
+            <p className="text-[13px] font-semibold text-foreground">实时翻译中控</p>
             <p className="text-[10px] text-muted-foreground truncate">{helper}</p>
           </div>
           {window.desktopBridge?.isElectron && (
             <span className="tool-chip text-[9px] font-semibold">DESKTOP</span>
           )}
+          {/* 语言切换 tabs */}
+          <div className="tool-tabs">
+            {LANG_OPTIONS.map(lang => (
+              <button
+                key={lang.value}
+                onClick={() => setTargetLang(lang.value)}
+                className={targetLang === lang.value ? 'tool-tab-active' : 'tool-tab'}
+              >
+                {lang.label}
+              </button>
+            ))}
+          </div>
           <button onClick={handleClear} className="tool-btn h-7 px-3 text-[10px] font-medium">
-            <Trash2 size={12} />
-            清空
+            <Trash2 size={12} /> 清空
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1 overflow-hidden p-3">
+        {/* 翻译主网格 */}
+        <div className="flex min-h-0 flex-1 overflow-hidden p-3 gap-3">
           <div className="translator-main-grid min-h-0 flex-1">
-            <div className="tool-panel translator-column translator-editor flex min-h-0 flex-col overflow-hidden">
-              <div className="border-b border-[#dde3ea] px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[12px] font-semibold text-foreground">原文区</p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">粘贴待翻译内容，或直接整理你的回复草稿。</p>
-                  </div>
-                  <button onClick={() => void handleCopy(sourceText, '原文')} className="tool-btn h-7 px-2.5 text-[10px] font-medium">
-                    <Copy size={12} />
-                    复制
-                  </button>
+
+            {/* 原文框 */}
+            <div className="tool-panel translator-column translator-editor flex min-h-0 flex-col overflow-hidden" style={{ borderRadius: 'var(--radius-lg)' }}>
+              <div className="px-4 py-3 flex items-center justify-between gap-3" style={{ borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
+                <div>
+                  <p className="text-[12px] font-semibold text-foreground">原文区</p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">粘贴待翻译内容</p>
                 </div>
-                <div className="mt-3 flex gap-2">
-                  <button onClick={handleCaptureClipboard} className="tool-btn h-7 px-2.5 text-[10px] font-medium">
-                    <Clipboard size={12} />
-                    从剪贴板加入暂存
+                <div className="flex items-center gap-1.5">
+                  <button onClick={handleCaptureClipboard} className="tool-btn h-7 px-2.5 text-[10px]">
+                    <Clipboard size={11} /> 暂存
+                  </button>
+                  <button onClick={() => void handleCopy(sourceText, '原文')} className="tool-btn h-7 px-2.5 text-[10px]">
+                    <Copy size={11} /> 复制
                   </button>
                 </div>
               </div>
-              <div className="flex-1 p-4">
+              <div className="flex-1 p-3">
                 <textarea
                   value={sourceText}
                   onChange={(e) => setSourceText(e.target.value)}
                   placeholder="例如：把对方的消息、你的中文回复、要发给客户的说明贴到这里…"
-                  className="tool-textarea h-full min-h-[320px] w-full resize-none px-3 py-3 text-[12px] leading-6"
+                  className="tool-textarea h-full min-h-[280px] w-full resize-none px-3 py-3 text-[12px] leading-6"
                 />
               </div>
             </div>
 
-            <div className="translator-actions flex flex-col items-center justify-center gap-2">
-              <select
-                value={targetLang}
-                onChange={(e) => setTargetLang(e.target.value)}
-                className="tool-input h-8 min-w-[130px] px-2 text-[11px]"
-              >
-                {LANG_OPTIONS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    译成{item.label}
-                  </option>
-                ))}
-              </select>
+            {/* 中间操作列 */}
+            <div className="translator-actions flex flex-col items-center justify-center gap-2.5">
               <button
                 onClick={handleTranslate}
                 disabled={translating || !sourceText.trim()}
-                className="tool-btn tool-btn-primary h-9 px-4 text-[11px] font-semibold disabled:opacity-40"
+                className="tool-btn tool-btn-primary h-10 px-4 text-[12px] font-semibold disabled:opacity-40 w-full"
               >
                 {translating ? <RefreshCw size={13} className="animate-spin" /> : <Languages size={13} />}
-                开始翻译
+                翻译
               </button>
               <button
                 onClick={handleSwap}
                 disabled={!translatedText.trim()}
-                className="tool-btn h-8 px-3 text-[10px] font-medium disabled:opacity-40"
+                className="tool-btn-quiet h-8 px-3 text-[11px] flex items-center gap-1.5 disabled:opacity-40"
               >
-                <ArrowLeftRight size={12} />
-                对调
+                <ArrowLeftRight size={12} /> 对调
               </button>
             </div>
 
-            <div className="tool-panel translator-column translator-editor flex min-h-0 flex-col overflow-hidden">
-              <div className="border-b border-[#dde3ea] px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[12px] font-semibold text-foreground">译文区</p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">当前目标语言：{targetLabel}。可手动润色后再复制发送。</p>
-                  </div>
-                  <button
-                    onClick={() => void handleCopy(translatedText, '译文')}
-                    className="tool-btn tool-btn-primary h-7 px-2.5 text-[10px] font-medium disabled:opacity-40"
-                    disabled={!translatedText.trim()}
-                  >
-                    {copied ? <Check size={12} /> : <Copy size={12} />}
-                    {copied ? '已复制' : '复制'}
-                  </button>
+            {/* 译文框 */}
+            <div className="tool-panel translator-column translator-editor flex min-h-0 flex-col overflow-hidden" style={{ borderRadius: 'var(--radius-lg)' }}>
+              <div className="px-4 py-3 flex items-center justify-between gap-3" style={{ borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
+                <div>
+                  <p className="text-[12px] font-semibold text-foreground">译文区</p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">→ {targetLabel}</p>
                 </div>
+                <button
+                  onClick={() => void handleCopy(translatedText, '译文')}
+                  className="tool-btn tool-btn-primary h-7 px-2.5 text-[10px] disabled:opacity-40"
+                  disabled={!translatedText.trim()}
+                >
+                  {copied ? <Check size={11} /> : <Copy size={11} />}
+                  {copied ? '已复制' : '复制'}
+                </button>
               </div>
-              <div className="flex-1 p-4">
+              <div className="flex-1 p-3">
                 <textarea
                   value={translatedText}
                   onChange={(e) => setTranslatedText(e.target.value)}
                   placeholder="翻译结果会显示在这里。你也可以直接手动改写成更自然的表达。"
-                  className="tool-textarea h-full min-h-[320px] w-full resize-none px-3 py-3 text-[12px] leading-6"
+                  className="tool-textarea h-full min-h-[280px] w-full resize-none px-3 py-3 text-[12px] leading-6"
                 />
               </div>
             </div>
 
+            {/* 右侧记录栏 */}
             <aside className="tool-panel translator-column translator-sidepane flex min-h-0 flex-col overflow-hidden">
-              <div className="border-b border-[#dde3ea] px-4 py-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-[12px] font-semibold text-foreground">最近翻译</p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">保留最近 30 条，可一键回填继续处理。</p>
-                  </div>
-                  <button onClick={clearHistory} className="tool-btn h-7 px-2 text-[9px] font-medium">
-                    <Trash2 size={11} />
-                    清空
-                  </button>
+              <div className="px-4 py-3 flex items-center justify-between gap-2" style={{ borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
+                <div>
+                  <p className="text-[12px] font-semibold text-foreground">最近翻译</p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">保留最近 30 条</p>
                 </div>
+                <button onClick={clearHistory} className="tool-btn h-7 px-2 text-[9px]">
+                  <Trash2 size={11} /> 清空
+                </button>
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {history.length === 0 && (
-                  <div className="tool-surface-soft p-3 text-[10px] leading-5 text-muted-foreground">
-                    还没有翻译记录。完成第一次翻译后，这里会保留最近的工作痕迹，方便你快速回填和二次润色。
+                  <div className="tool-surface p-3 text-[10px] leading-5 text-muted-foreground rounded-xl">
+                    还没有翻译记录。完成第一次翻译后，这里会保留最近的工作痕迹。
                   </div>
                 )}
                 {history.map((item) => (
@@ -441,7 +451,7 @@ export default function TranslatorPage() {
                       setTargetLang(item.targetLang);
                       setLastEngine(item.engine);
                     }}
-                    className="tool-list-item tool-record w-full rounded-[10px] px-3 py-2 text-left"
+                    className="tool-list-item tool-record w-full rounded-xl px-3 py-2.5 text-left"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[10px] font-semibold text-foreground">
@@ -451,37 +461,30 @@ export default function TranslatorPage() {
                         {formatHistoryTime(item.createdAt)}
                       </span>
                     </div>
-                    <p className="mt-2 line-clamp-2 text-[10px] leading-5 text-muted-foreground">{item.sourceText}</p>
-                    <div className="mt-2 rounded-[8px] bg-white/70 px-2 py-1.5 text-[10px] leading-5 text-foreground">
+                    <p className="mt-1.5 line-clamp-2 text-[10px] leading-5 text-muted-foreground">{item.sourceText}</p>
+                    <div className="mt-1.5 rounded-lg bg-white/70 px-2.5 py-1.5 text-[10px] leading-5 text-foreground">
                       {item.translatedText || '无译文'}
                     </div>
                   </button>
                 ))}
+
+                {/* 剪贴板暂存 */}
                 {clipboard.length > 0 && (
                   <div className="pt-2">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-semibold text-foreground">剪贴板暂存</p>
-                      <span className="text-[9px] text-muted-foreground">{clipboard.length} 条</span>
+                    <div className="ios-section-header mb-1.5">
+                      <span>剪贴板暂存</span>
+                      <span className="text-muted-foreground">{clipboard.length} 条</span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {clipboard.map((item) => (
-                        <div key={item.id} className="tool-list-item tool-record rounded-[9px] px-3 py-2">
-                          <button
-                            onClick={() => setSourceText(item.text)}
-                            className="w-full text-left"
-                          >
+                        <div key={item.id} className="tool-list-item tool-record rounded-xl px-3 py-2">
+                          <button onClick={() => setSourceText(item.text)} className="w-full text-left">
                             <p className="line-clamp-3 text-[10px] leading-5 text-foreground">{item.text}</p>
                           </button>
                           <div className="mt-2 flex items-center justify-between gap-2">
-                            <span className="text-[9px] text-muted-foreground">
-                              {formatHistoryTime(item.createdAt)}
-                            </span>
-                            <button
-                              onClick={() => deleteClipboardItem(item.id)}
-                              className="tool-btn h-6 px-2 text-[9px] font-medium text-red-500"
-                            >
-                              <Trash2 size={11} />
-                              删除
+                            <span className="text-[9px] text-muted-foreground">{formatHistoryTime(item.createdAt)}</span>
+                            <button onClick={() => deleteClipboardItem(item.id)} className="tool-btn h-5 px-2 text-[9px] text-red-500">
+                              <Trash2 size={10} /> 删除
                             </button>
                           </div>
                         </div>
@@ -491,6 +494,7 @@ export default function TranslatorPage() {
                 )}
               </div>
             </aside>
+
           </div>
         </div>
       </section>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MessageCircleMore, Send, Users, ShieldCheck, PencilLine, Lock, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import { cn, type CommunityMember, type CommunityMessage, type CommunityRoom, type SubAccount } from '@/lib/index';
 import { useAdminStore } from '@/hooks/useStore';
@@ -23,12 +23,13 @@ function formatMsgTime(value: string) {
 }
 
 function memberFromSubAccount(sub: SubAccount): CommunityMember {
-  return {
-    key: sub.id,
-    name: sub.name,
-    role: 'user',
-    note: sub.note,
-  };
+  return { key: sub.id, name: sub.name, role: 'user', note: sub.note };
+}
+
+// 根据名字生成固定渐变色
+function nameToGradient(name: string): string {
+  const hue = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
+  return `linear-gradient(135deg, hsl(${hue},65%,55%) 0%, hsl(${(hue + 40) % 360},70%,45%) 100%)`;
 }
 
 export default function CommunityPage() {
@@ -116,26 +117,18 @@ export default function CommunityPage() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshMembers, refreshMessages]);
-
-  useEffect(() => {
-    if (!room || !currentMember) return;
-    void refreshMessages();
-  }, [currentMember, refreshMessages, room]);
+    return () => { cancelled = true; };
+  }, []);
 
   const handleSend = async () => {
     const body = input.trim();
-    if ((!body && !selectedImage) || !currentMember || !room || sending) return;
+    if ((!body && !selectedImage) || !currentMember || !room) return;
     setSending(true);
     try {
       let uploadResult: { imageUrl: string; imageName: string } | undefined;
       if (selectedImage) {
         uploadResult = await uploadCommunityImage(selectedImage, currentMember.key);
       }
-
       await createCommunityMessage({
         scope: selectedKey === 'room' ? 'room' : 'direct',
         roomId: selectedKey === 'room' ? room.id : undefined,
@@ -150,9 +143,7 @@ export default function CommunityPage() {
       });
       setInput('');
       setSelectedImage(null);
-      if (selectedImagePreview?.startsWith('blob:')) {
-        URL.revokeObjectURL(selectedImagePreview);
-      }
+      if (selectedImagePreview?.startsWith('blob:')) URL.revokeObjectURL(selectedImagePreview);
       setSelectedImagePreview(null);
       await refreshMessages();
     } finally {
@@ -163,9 +154,7 @@ export default function CommunityPage() {
   const handlePickImage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (selectedImagePreview?.startsWith('blob:')) {
-      URL.revokeObjectURL(selectedImagePreview);
-    }
+    if (selectedImagePreview?.startsWith('blob:')) URL.revokeObjectURL(selectedImagePreview);
     setSelectedImage(file);
     setSelectedImagePreview(URL.createObjectURL(file));
     event.target.value = '';
@@ -184,36 +173,40 @@ export default function CommunityPage() {
   };
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-transparent">
-      <aside className="tool-sidebar w-72 shrink-0 overflow-y-auto border-r border-[#dbe2e9]">
-        <div className="p-4 border-b border-[#dbe2e9]">
+    <div className="flex h-full w-full overflow-hidden bg-[#f2f2f7]">
+      {/* ── 左侧边栏 ── */}
+      <aside className="tool-sidebar w-64 shrink-0 overflow-y-auto border-r border-[#e5e5ea] bg-white">
+        {/* 社群频道 */}
+        <div className="p-3 border-b border-[#f2f2f7]">
+          <p className="text-[11px] font-semibold text-[#8e8e93] uppercase tracking-wider px-1 mb-2">频道</p>
           <div
             onClick={() => setSelectedKey('room')}
             className={cn(
-              'rounded-[12px] border p-3 cursor-pointer transition',
+              'flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 cursor-pointer transition-colors',
               selectedKey === 'room'
-                ? 'border-primary bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)]'
-                : 'border-[#dbe2e9] bg-white hover:bg-white/80'
+                ? 'bg-[#007aff]/10'
+                : 'hover:bg-[#f2f2f7]'
             )}
           >
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <MessageCircleMore size={16} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[12px] font-semibold text-foreground truncate">{room?.name ?? '社群'}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{room?.description || '管理员分发的所有子账号都可在此交流'}</p>
-              </div>
+            <div className="w-9 h-9 rounded-full bg-[#007aff]/15 flex items-center justify-center shrink-0">
+              <MessageCircleMore size={16} className="text-[#007aff]" />
+            </div>
+            <div className="min-w-0">
+              <p className={cn('text-[14px] font-semibold truncate', selectedKey === 'room' ? 'text-[#007aff]' : 'text-[#1c1c1e]')}>
+                {room?.name ?? '社群'}
+              </p>
+              <p className="text-[11px] text-[#8e8e93] truncate">{room?.description || '所有成员'}</p>
             </div>
           </div>
         </div>
 
-        <div className="p-4">
-          <div className="flex items-center gap-2 mb-3 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <Users size={12} />
-            <span>成员</span>
+        {/* 成员列表 */}
+        <div className="p-3">
+          <div className="flex items-center gap-1.5 mb-2 px-1">
+            <Users size={11} className="text-[#8e8e93]" />
+            <span className="text-[11px] font-semibold text-[#8e8e93] uppercase tracking-wider">成员</span>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-0.5">
             {members
               .filter((item) => currentMember?.key !== item.key)
               .map((member) => (
@@ -221,128 +214,163 @@ export default function CommunityPage() {
                   key={member.key}
                   onClick={() => setSelectedKey(member.key)}
                   className={cn(
-                    'w-full rounded-[10px] border px-3 py-2 text-left transition',
-                    selectedKey === member.key
-                      ? 'border-primary bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)]'
-                      : 'border-[#dbe2e9] bg-white hover:bg-white/80'
+                    'w-full flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors',
+                    selectedKey === member.key ? 'bg-[#007aff]/10' : 'hover:bg-[#f2f2f7]'
                   )}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] font-medium text-foreground truncate">{member.name}</span>
-                    {member.role === 'admin' ? (
-                      <span className="text-[9px] text-primary bg-primary/10 px-1.5 py-0.5 rounded">ADMIN</span>
-                    ) : (
-                      <Lock size={11} className="text-muted-foreground/60" />
-                    )}
+                  {/* 头像 */}
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white text-[12px] font-semibold"
+                    style={{ background: nameToGradient(member.name) }}
+                  >
+                    {member.name.slice(0, 1).toUpperCase()}
                   </div>
-                  <p className="text-[10px] text-muted-foreground truncate mt-1">{member.note || '可发起私聊'}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn(
+                        'text-[13px] font-medium truncate',
+                        selectedKey === member.key ? 'text-[#007aff]' : 'text-[#1c1c1e]'
+                      )}>{member.name}</span>
+                      {member.role === 'admin' && (
+                        <span className="text-[9px] text-[#007aff] bg-[#007aff]/10 px-1.5 py-0.5 rounded-full shrink-0">
+                          ADMIN
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#8e8e93] truncate">{member.note || '可发起私聊'}</p>
+                  </div>
+                  {member.role !== 'admin' && (
+                    <Lock size={11} className="text-[#c7c7cc] shrink-0" />
+                  )}
                 </button>
               ))}
           </div>
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col">
-        <div className="tool-toolbar flex items-center gap-3 px-4 py-2 shrink-0">
+      {/* ── 右侧主区域 ── */}
+      <section className="flex min-w-0 flex-1 flex-col bg-white">
+        {/* 顶部栏 */}
+        <div className="tool-toolbar h-11 px-4 flex items-center gap-3 shrink-0">
           {selectedKey === 'room' ? (
             <>
-              <MessageCircleMore className="w-4 h-4 text-muted-foreground" />
+              <div className="w-7 h-7 rounded-full bg-[#007aff]/10 flex items-center justify-center shrink-0">
+                <MessageCircleMore size={14} className="text-[#007aff]" />
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-semibold text-foreground truncate">{room?.name ?? '社群'}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{room?.description || '所有子账号共用的群组频道'}</p>
+                <p className="text-[15px] font-semibold text-[#1c1c1e] truncate leading-tight">{room?.name ?? '社群'}</p>
+                <p className="text-[11px] text-[#8e8e93] truncate leading-none">{room?.description || '所有子账号共用的群组频道'}</p>
               </div>
               {currentRole === 'admin' && (
                 <button
                   onClick={() => setEditing((value) => !value)}
-                  className="tool-btn h-6 px-2.5 text-[10px]"
+                  className="tool-btn tool-btn-quiet h-7 px-2.5 text-[12px]"
                 >
                   <PencilLine size={12} />
-                  {editing ? '收起编辑' : '编辑群信息'}
+                  {editing ? '收起' : '编辑'}
                 </button>
               )}
             </>
           ) : (
             <>
-              <Lock className="w-4 h-4 text-muted-foreground" />
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0"
+                style={{ background: nameToGradient(selectedMember?.name ?? '?') }}
+              >
+                {(selectedMember?.name ?? '?').slice(0, 1).toUpperCase()}
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-semibold text-foreground truncate">{selectedMember?.name ?? '私聊'}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{selectedMember?.note || '成员私聊频道'}</p>
+                <p className="text-[15px] font-semibold text-[#1c1c1e] truncate leading-tight">{selectedMember?.name ?? '私聊'}</p>
+                <p className="text-[11px] text-[#8e8e93] truncate leading-none">{selectedMember?.note || '成员私聊频道'}</p>
               </div>
             </>
           )}
         </div>
 
+        {/* 社群编辑面板（管理员） */}
         {selectedKey === 'room' && editing && currentRole === 'admin' && (
-          <div className="mx-4 mt-3 rounded-[14px] border border-[#dbe2e9] bg-white p-4 space-y-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
-              <ShieldCheck size={13} className="text-primary" />
+          <div className="mx-4 mt-3 ios-card p-4 space-y-2.5 animate-fade-up shrink-0">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-[#1c1c1e]">
+              <ShieldCheck size={14} className="text-[#007aff]" />
               <span>社群配置</span>
             </div>
             <input
               value={draftName}
               onChange={(event) => setDraftName(event.target.value)}
-              className="tool-input h-8 px-3 text-[12px]"
+              className="tool-input h-8 px-3 text-[13px]"
               placeholder="社群名称"
             />
             <input
               value={draftDesc}
               onChange={(event) => setDraftDesc(event.target.value)}
-              className="tool-input h-8 px-3 text-[12px]"
+              className="tool-input h-8 px-3 text-[13px]"
               placeholder="社群简介"
             />
             <textarea
               value={draftNote}
               onChange={(event) => setDraftNote(event.target.value)}
-              className="tool-textarea min-h-20 px-3 py-2 text-[12px]"
+              className="tool-textarea min-h-20 px-3 py-2 text-[13px]"
               placeholder="管理员备注 / 公告"
             />
             <input
               value={draftMarquee}
               onChange={(event) => setDraftMarquee(event.target.value)}
-              className="tool-input h-8 px-3 text-[12px]"
+              className="tool-input h-8 px-3 text-[13px]"
               placeholder="顶部滚动公告内容"
             />
             <div className="flex justify-end">
-              <button onClick={handleSaveRoom} className="tool-btn tool-btn-primary h-7 px-4 text-[11px] font-semibold">
+              <button onClick={handleSaveRoom} className="ios-btn ios-btn-primary h-8 px-4 text-[13px]">
                 保存社群信息
               </button>
             </div>
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-4 py-3">
+        {/* 消息列表 */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
           {loading ? (
-            <div className="flex h-full items-center justify-center text-[12px] text-muted-foreground gap-2">
+            <div className="flex h-full items-center justify-center gap-2 text-[13px] text-[#8e8e93]">
               <RefreshCw className="w-4 h-4 animate-spin" />
               <span>加载社群中…</span>
             </div>
           ) : messages.length === 0 ? (
             <div className="flex h-full items-center justify-center text-center">
               <div>
-                <MessageCircleMore className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
-                <p className="text-[12px] text-muted-foreground">还没有消息</p>
-                <p className="text-[10px] text-muted-foreground/70 mt-1">
+                <div className="w-16 h-16 rounded-full bg-[#f2f2f7] flex items-center justify-center mx-auto mb-3">
+                  <MessageCircleMore className="w-7 h-7 text-[#c7c7cc]" />
+                </div>
+                <p className="text-[15px] font-medium text-[#8e8e93]">还没有消息</p>
+                <p className="text-[13px] text-[#c7c7cc] mt-1">
                   {selectedKey === 'room' ? '发出第一条社群消息' : '开始这段私聊'}
                 </p>
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              {messages.map((message) => {
-                const mine = message.senderMemberKey === currentMember?.key;
-                return (
-                  <div key={message.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
+            messages.map((message) => {
+              const mine = message.senderMemberKey === currentMember?.key;
+              return (
+                <div key={message.id} className={cn('flex gap-2.5', mine ? 'flex-row-reverse' : 'flex-row')}>
+                  {/* 头像 */}
+                  {!mine && (
                     <div
-                      className={cn(
-                        'max-w-[70%] rounded-[12px] px-3 py-2 text-[12px]',
-                        mine
-                          ? 'bg-[linear-gradient(180deg,#3683ec_0%,#276bcc_100%)] text-white'
-                          : 'border border-[#d8dee6] bg-white text-foreground'
-                      )}
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-semibold shrink-0 self-end"
+                      style={{ background: nameToGradient(message.senderName) }}
                     >
-                      <div className={cn('mb-1 text-[10px]', mine ? 'text-white/75' : 'text-muted-foreground')}>
-                        {message.senderName} · {formatMsgTime(message.createdAt)}
-                      </div>
+                      {message.senderName.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  {/* 气泡 */}
+                  <div className={cn('max-w-[70%] space-y-1', mine ? 'items-end' : 'items-start')}>
+                    <div className={cn('text-[11px]', mine ? 'text-right text-[#8e8e93]' : 'text-[#8e8e93]')}>
+                      {!mine && <span className="font-medium text-[#1c1c1e] mr-1">{message.senderName}</span>}
+                      {formatMsgTime(message.createdAt)}
+                    </div>
+                    <div className={cn(
+                      'rounded-[16px] px-3.5 py-2.5 text-[14px]',
+                      mine
+                        ? 'bg-[#007aff] text-white rounded-br-[4px]'
+                        : 'bg-[#f2f2f7] text-[#1c1c1e] rounded-bl-[4px]'
+                    )}>
                       {message.imageUrl && (
                         <a href={message.imageUrl} target="_blank" rel="noreferrer" className="block mb-2">
                           <img
@@ -352,44 +380,31 @@ export default function CommunityPage() {
                           />
                         </a>
                       )}
-                      <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                      {message.body && <p className="leading-relaxed whitespace-pre-wrap">{message.body}</p>}
                     </div>
                   </div>
-                );
-              })}
-              <div ref={bottomRef} />
-            </div>
+                </div>
+              );
+            })
           )}
+          <div ref={bottomRef} />
         </div>
 
-        <div className="tool-toolbar px-4 py-3 shrink-0">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handlePickImage}
-          />
+        {/* 底部输入栏 */}
+        <div className="border-t border-[#f2f2f7] px-4 py-3 space-y-2 bg-white shrink-0">
+          {/* 图片预览 */}
           {selectedImagePreview && (
-            <div className="mb-3 flex items-center gap-2 rounded-[12px] border border-[#dbe2e9] bg-white px-3 py-2">
-              <img src={selectedImagePreview} alt={selectedImage?.name ?? 'preview'} className="h-12 w-12 rounded object-cover" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[11px] text-foreground">{selectedImage?.name}</p>
-                <p className="text-[10px] text-muted-foreground">图片会上传到社群存储后发送</p>
-              </div>
+            <div className="flex items-center gap-2">
+              <img src={selectedImagePreview} alt="preview" className="h-12 rounded-[8px] object-cover border border-[#e5e5ea]" />
               <button
                 type="button"
                 onClick={() => {
-                  if (selectedImagePreview.startsWith('blob:')) {
-                    URL.revokeObjectURL(selectedImagePreview);
-                  }
+                  if (selectedImagePreview.startsWith('blob:')) URL.revokeObjectURL(selectedImagePreview);
                   setSelectedImage(null);
                   setSelectedImagePreview(null);
                 }}
-                className="tool-btn h-6 px-2 text-[10px]"
-              >
-                移除
-              </button>
+                className="tool-btn tool-btn-quiet h-6 px-2 text-[11px]"
+              >移除</button>
             </div>
           )}
           <div className="flex w-full items-end gap-2">
@@ -404,31 +419,29 @@ export default function CommunityPage() {
               }}
               rows={2}
               placeholder={selectedKey === 'room' ? '向社群发送消息…' : `向 ${selectedMember?.name ?? '成员'} 发送私聊…`}
-              className="tool-textarea min-h-[52px] flex-1 px-3 py-2 text-[12px]"
+              className="tool-textarea min-h-[52px] flex-1 px-3 py-2 text-[13px] resize-none"
             />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePickImage} />
             <button
               type="button"
               onClick={() => {
                 if (!room) {
-                  toast({
-                    title: '社群尚未就绪',
-                    description: '请等待社群初始化完成后再上传图片。',
-                  });
+                  toast({ title: '社群尚未就绪', description: '请等待社群初始化完成后再上传图片。' });
                   return;
                 }
                 fileInputRef.current?.click();
               }}
-              className="tool-btn h-9 w-9 px-0"
+              className="tool-btn tool-btn-quiet w-9 h-9 px-0 rounded-full"
               title="上传图片"
             >
-              <ImageIcon size={14} />
+              <ImageIcon size={15} />
             </button>
             <button
               onClick={handleSend}
               disabled={sending || (!input.trim() && !selectedImage) || !currentMember}
-              className="tool-btn tool-btn-primary h-9 px-4 text-[11px] font-semibold disabled:opacity-40"
+              className="ios-btn ios-btn-primary h-9 px-4 text-[13px] disabled:opacity-40 rounded-full"
             >
-              {sending ? <RefreshCw size={12} className="animate-spin" /> : <Send size={12} />}
+              {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
               发送
             </button>
           </div>

@@ -308,6 +308,14 @@ export function WASessionCard({
     onRemove();
   };
 
+  // 状态点 class 映射
+  const dotClass: Record<WASession['status'], string> = {
+    online:  'ios-dot-online',
+    loading: 'ios-dot-loading',
+    qr:      'ios-dot-qr',
+    offline: 'ios-dot-offline',
+  };
+
   return (
     <div
       role="button"
@@ -318,88 +326,44 @@ export function WASessionCard({
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
       className={cn(
-        'relative flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors select-none',
-        'rounded-none border-b border-border/50',
+        'relative flex items-center gap-2.5 px-3 h-12 cursor-pointer transition-colors select-none rounded-lg',
         isActive
-          ? 'bg-[linear-gradient(180deg,#edf5ff_0%,#e6f0fd_100%)] shadow-[inset_2px_0_0_#0066cc]'
-          : 'hover:bg-white/70'
+          ? 'bg-primary/10 border border-primary/20'
+          : 'hover:bg-black/[0.05] border border-transparent'
       )}
     >
-      {/* 头像区 */}
-      <div className="relative shrink-0">
-        {session.avatarUrl ? (
-          <img
-            src={session.avatarUrl}
-            alt="avatar"
-            className="w-8 h-8 rounded-full object-cover border border-border"
-          />
-        ) : (
-          <div className={cn(
-            'w-8 h-8 rounded-full flex items-center justify-center border',
-            session.status === 'online'
-              ? 'bg-green-50 border-green-200'
-              : 'bg-gray-100 border-gray-200'
-          )}>
-            <User className={cn(
-              'w-4 h-4',
-              session.status === 'online' ? 'text-green-500' : 'text-gray-400'
-            )} />
-          </div>
+      {/* 状态点 */}
+      <span className={cn(
+        'w-2 h-2 rounded-full shrink-0',
+        dotClass[session.status],
+        session.status === 'loading' && 'animate-pulse'
+      )} />
+
+      {/* 标签 */}
+      <span className="flex-1 truncate text-[13px] text-foreground font-medium">
+        {session.phone ?? truncateId(session.id)}
+      </span>
+
+      {/* 右侧：未读角标 + 删除 */}
+      <div className="flex items-center gap-1 shrink-0">
+        {session.unreadCount > 0 && (
+          <span className="ios-badge">{session.unreadCount > 99 ? '99+' : session.unreadCount}</span>
         )}
-        {/* 状态小圆点覆盖 */}
-        {session.status === 'online' && (
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-white" />
-        )}
-        {session.status === 'loading' && (
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white animate-pulse" />
-        )}
-        {session.status === 'qr' && (
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-blue-400 border-2 border-white" />
+        {(hovering || removing) && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={removing}
+            className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 transition"
+            title="删除"
+          >
+            {removing
+              ? <RefreshCw className="w-3 h-3 animate-spin" />
+              : <Trash2 className="w-3 h-3" />
+            }
+          </button>
         )}
       </div>
-
-      {/* 内容区 */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-1">
-          <span className="text-[12px] font-mono text-foreground/80 truncate">
-            {session.phone ?? truncateId(session.id)}
-          </span>
-          {session.unreadCount > 0 && (
-            <span className="shrink-0 min-w-[16px] h-4 px-1 rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center">
-              {session.unreadCount > 99 ? '99+' : session.unreadCount}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center justify-between mt-0.5">
-          <StatusBadge status={session.status} />
-          {session.lastSeen && (
-            <span className="text-[10px] text-muted-foreground font-mono">
-              {formatLastSeen(session.lastSeen)}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* 删除按钮（hover 时显示） */}
-      {(hovering || isActive) && (
-        <button
-          type="button"
-          onClick={handleRemove}
-          disabled={removing}
-          title="删除会话"
-          className={cn(
-            'absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center',
-            'rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors',
-            removing && 'opacity-50 cursor-wait'
-          )}
-        >
-          {removing ? (
-            <RefreshCw className="w-3 h-3 animate-spin" />
-          ) : (
-            <Trash2 className="w-3 h-3" />
-          )}
-        </button>
-      )}
     </div>
   );
 }
@@ -417,12 +381,12 @@ interface WAEmptyStateProps {
 export function WAEmptyState({ onAdd, adding, isElectron }: WAEmptyStateProps) {
   if (!isElectron) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 animate-fade-up">
         <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center">
           <AlertCircle className="w-8 h-8 text-amber-500" />
         </div>
         <div className="text-center max-w-xs">
-          <p className="text-[13px] font-semibold text-foreground mb-1">
+          <p className="text-[14px] font-semibold text-foreground mb-1">
             请在 Electron 应用中运行
           </p>
           <p className="text-[12px] text-muted-foreground leading-relaxed">
@@ -445,26 +409,21 @@ export function WAEmptyState({ onAdd, adding, isElectron }: WAEmptyStateProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
-      <div className="w-16 h-16 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/20 flex items-center justify-center">
-        <MessageCircle className="w-8 h-8 text-[#25D366]" />
-      </div>
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 animate-fade-up">
+      <MessageCircle className="w-16 h-16 text-muted-foreground/20" />
       <div className="text-center max-w-xs">
-        <p className="text-[13px] font-semibold text-foreground mb-1">
-          添加你的第一个 WhatsApp 账号
-        </p>
+        <p className="text-[14px] font-semibold text-foreground mb-1">选择账号开始</p>
         <p className="text-[12px] text-muted-foreground leading-relaxed">
-          点击「+ 添加账号」，然后在出现的二维码页面中，
-          用 WhatsApp 手机端扫码完成登录。
+          点击左侧「+」添加 WhatsApp 账号，<br />扫码完成登录后即可开始管理消息。
         </p>
       </div>
       <button
         type="button"
         onClick={onAdd}
         disabled={adding}
-        className="tool-btn px-4 py-1.5 text-[12px] flex items-center gap-1.5 bg-[#25D366]/10 border-[#25D366]/30 text-[#128C7E] hover:bg-[#25D366]/20"
+        className="tool-btn-primary px-5 py-2 text-[12px] rounded-full flex items-center gap-1.5"
       >
-        {adding ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+        {adding ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
         添加 WhatsApp 账号
       </button>
     </div>
@@ -837,46 +796,36 @@ export default function WhatsAppPage() {
 
   // ── 渲染 ───────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-full w-full overflow-hidden bg-background">
-      {/* ── 左侧：会话列表 240px ── */}
-      <aside className="w-[240px] shrink-0 flex flex-col border-r border-border bg-[var(--sidebar)] overflow-hidden">
+    <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--background)' }}>
+      {/* ── 左侧：会话列表 220px ── */}
+      <aside
+        className="shrink-0 flex flex-col overflow-hidden bg-white/80"
+        style={{ width: 220, borderRight: '0.5px solid rgba(0,0,0,0.09)' }}
+      >
         {/* 顶部栏 */}
-        <div className="h-10 flex items-center justify-between px-3 border-b border-border shrink-0">
-          <div className="flex items-center gap-1.5">
-            <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
-            <span className="text-[12px] font-semibold text-foreground">WhatsApp</span>
-            {sessions.length > 0 && (
-              <span className="text-[10px] text-muted-foreground font-mono">
-                ({sessions.length})
-              </span>
-            )}
-          </div>
+        <div
+          className="h-12 flex items-center justify-between px-3 shrink-0"
+          style={{ borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}
+        >
+          <span className="text-[15px] font-bold text-foreground">WhatsApp</span>
           <button
             type="button"
             onClick={handleAddSession}
             disabled={adding}
             title="添加账号"
-            className={cn(
-              'tool-btn h-6 px-2 text-[11px] flex items-center gap-1 rounded',
-              adding && 'opacity-60 cursor-wait'
-            )}
+            className="tool-btn-quiet w-8 h-8 rounded-full flex items-center justify-center"
           >
-            {adding ? (
-              <RefreshCw className="w-3 h-3 animate-spin" />
-            ) : (
-              <Plus className="w-3 h-3" />
-            )}
-            添加
+            {adding ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           </button>
         </div>
 
         {/* 会话列表 */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-2 space-y-1">
           {sessions.length === 0 ? (
             <div className="p-4 text-center text-[11px] text-muted-foreground">
               <Smartphone className="w-6 h-6 mx-auto mb-2 opacity-30" />
               <p>暂无账号</p>
-              <p className="mt-0.5 text-[10px]">点击「添加」开始</p>
+              <p className="mt-0.5 text-[10px]">点击「+」开始添加</p>
             </div>
           ) : (
             sessions.map((session) => (
@@ -893,15 +842,15 @@ export default function WhatsAppPage() {
         </div>
 
         {/* 底部状态栏 */}
-        <div className="h-6 border-t border-border flex items-center px-3 gap-1.5 shrink-0">
+        <div className="h-7 flex items-center px-3 gap-1.5 shrink-0" style={{ borderTop: '0.5px solid rgba(0,0,0,0.06)' }}>
           {isElectron ? (
             <>
-              <Wifi className="w-2.5 h-2.5 text-green-500" />
-              <span className="text-[10px] text-muted-foreground font-mono">Electron 模式</span>
+              <Wifi className="w-3 h-3 text-green-500" />
+              <span className="text-[10px] text-muted-foreground font-mono">Electron</span>
             </>
           ) : (
             <>
-              <AlertCircle className="w-2.5 h-2.5 text-amber-500" />
+              <AlertCircle className="w-3 h-3 text-amber-500" />
               <span className="text-[10px] text-muted-foreground font-mono">演示模式</span>
             </>
           )}
@@ -925,9 +874,9 @@ export default function WhatsAppPage() {
         {/* 有会话但未选中 */}
         {sessions.length > 0 && !activeSession && (
           <div className="flex-1 flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <MessageCircle className="w-10 h-10 mx-auto mb-2 opacity-20" />
-              <p className="text-[12px]">从左侧选择一个账号</p>
+            <div className="text-center text-muted-foreground animate-fade-up">
+              <MessageCircle className="w-16 h-16 mx-auto mb-3 opacity-20" />
+              <p className="text-[13px]">选择账号开始</p>
             </div>
           </div>
         )}
@@ -936,14 +885,16 @@ export default function WhatsAppPage() {
         {activeSession && (
           <>
             {/* 顶部信息条 */}
-            <div className="h-9 border-b border-border flex items-center px-4 gap-2 shrink-0 bg-background/80 backdrop-blur-sm">
+            <div
+              className="h-11 ios-nav-bar flex items-center px-4 gap-2 shrink-0"
+            >
               <StatusBadge status={activeSession.status} />
-              <span className="text-[12px] font-mono text-foreground/70 truncate">
+              <span className="text-[13px] font-mono text-foreground/80 truncate">
                 {activeSession.phone ?? truncateId(activeSession.id)}
               </span>
               {activeSession.lastSeen && (
-                <span className="text-[10px] text-muted-foreground ml-auto">
-                  最后活跃：{formatLastSeen(activeSession.lastSeen)}
+                <span className="text-[11px] text-muted-foreground ml-auto">
+                  {formatLastSeen(activeSession.lastSeen)}
                 </span>
               )}
             </div>

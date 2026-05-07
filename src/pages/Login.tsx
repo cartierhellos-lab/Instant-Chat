@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LogIn, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, AlertCircle, MessageCircle } from 'lucide-react';
 import { useSettingsStore, useAdminStore, useChatStore } from '@/hooks/useStore';
 import { ROUTE_PATHS, ADMIN_HOSTNAME, USER_HOSTNAME, getHostMode } from '@/lib/index';
 import { getSubAccounts } from '@/api/supabase';
@@ -142,72 +142,132 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center w-screen h-screen px-4">
-      {/* 居中卡片 — macOS 偏好设置风格 */}
-      <div className="tool-window w-[400px] rounded-[18px] overflow-hidden">
-
-        {/* 标题栏 */}
-        <div className="tool-header flex items-center gap-2 px-4 py-3">
-          <div className="w-4 h-4 rounded-[4px] bg-primary flex items-center justify-center shadow-btn">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.93 12 19.79 19.79 0 0 1 1.9 3.38 2 2 0 0 1 3.68 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.65a16 16 0 0 0 6.44 6.44l1.02-1.01a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
-            </svg>
+    <div
+      className="flex items-center justify-center w-screen h-screen px-4"
+      style={{
+        background: 'linear-gradient(135deg, #e8f0fe 0%, #f0e8ff 50%, #fce8f0 100%)',
+      }}
+    >
+      {/* 磨砂玻璃登录卡片 */}
+      <div
+        className="ios-login-panel animate-spring-in"
+        style={{ width: 380, padding: '48px 40px' }}
+      >
+        {/* ① App 图标 */}
+        <div className="flex flex-col items-center gap-3 mb-7">
+          <div
+            className="flex items-center justify-center rounded-[14px] shadow-lg"
+            style={{
+              width: 48,
+              height: 48,
+              background: 'linear-gradient(135deg, #007aff 0%, #a855f7 100%)',
+            }}
+          >
+            <MessageCircle size={24} color="white" strokeWidth={2} />
           </div>
-          <span className="text-[12px] font-semibold text-foreground/80">Aobesiwei Chat</span>
-          <span className="text-[10px] text-muted-foreground ml-1">{hostCopy.subtitle}</span>
+
+          {/* ② 标题 */}
+          <div className="text-center">
+            <h1
+              className="font-bold text-center"
+              style={{ fontSize: 22, color: '#1c1c1e', letterSpacing: '-0.02em' }}
+            >
+              Instant Chat
+            </h1>
+
+            {/* ③ 副标题 */}
+            <p
+              className="text-center mt-1"
+              style={{ fontSize: 13, color: 'var(--muted-foreground, #8e8e93)' }}
+            >
+              {hostCopy.subtitle}
+            </p>
+          </div>
         </div>
 
-        {/* 表单区 */}
-        <div className="px-6 py-6 space-y-4 bg-[linear-gradient(180deg,#ffffff_0%,#fafbfd_100%)]">
-          {/* 提示文字 */}
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            {hostCopy.prompt}
-          </p>
+        {/* ④ 分割间距已由上方 mb-7 + 下方 space-y-3 提供 */}
 
-          {/* 输入框 */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-medium text-foreground/70">访问密钥</label>
-            <div className="relative">
-              <input
-                type={show ? 'text' : 'password'}
-                value={key}
-                onChange={e => { setKey(e.target.value); setError(''); }}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                placeholder={hostCopy.placeholder}
-                autoComplete="off"
-                autoFocus
-                className="tool-input h-8 px-2.5 pr-8 text-[12px] font-mono placeholder:text-muted-foreground/50"
-                style={{ borderColor: error ? '#ef4444' : undefined }}
-              />
-              <button
-                type="button"
-                tabIndex={-1}
-                onClick={() => setShow(s => !s)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
-              >
-                {show ? <EyeOff size={12} /> : <Eye size={12} />}
-              </button>
+        {/* ⑤ 输入框容器 */}
+        <div className="space-y-3">
+          <div className="relative">
+            {/* 左侧锁图标 */}
+            <Lock
+              size={14}
+              className="absolute top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ left: 14, color: 'var(--muted-foreground, #8e8e93)' }}
+            />
+
+            <input
+              type={show ? 'text' : 'password'}
+              value={key}
+              onChange={e => { setKey(e.target.value); setError(''); }}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder={hostCopy.placeholder}
+              autoComplete="off"
+              autoFocus
+              className="tool-input w-full"
+              style={{
+                height: 50,
+                fontSize: 15,
+                paddingLeft: 44,
+                paddingRight: 44,
+                borderColor: error ? '#ff3b30' : undefined,
+              }}
+            />
+
+            {/* 右侧眼睛图标 */}
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShow(s => !s)}
+              className="absolute top-1/2 -translate-y-1/2 transition-colors"
+              style={{
+                right: 14,
+                color: 'var(--muted-foreground, #8e8e93)',
+              }}
+            >
+              {show ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+
+          {/* ⑥ 错误提示 */}
+          {error && (
+            <div className="flex items-center gap-1.5" style={{ color: '#ff3b30', fontSize: 13 }}>
+              <AlertCircle size={13} />
+              <span>{error}</span>
             </div>
-            {error && (
-              <p className="text-[11px] text-red-500">{error}</p>
-            )}
-          </div>
-        </div>
+          )}
 
-        {/* 底部操作栏 */}
-        <div className="tool-toolbar flex items-center justify-between px-6 py-3">
-          <span className="text-[10px] text-muted-foreground/60 font-mono tracking-wider">{hostCopy.footer}</span>
+          {/* ⑦ 登录按钮 */}
           <button
             onClick={handleLogin}
             disabled={loading || !key.trim()}
-            className="tool-btn tool-btn-primary h-7 px-4 text-[11px] font-semibold disabled:opacity-40"
+            className="ios-btn ios-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40"
+            style={{ height: 50, fontSize: 17, fontWeight: 600 }}
           >
-            {loading
-              ? <><Loader2 size={11} className="animate-spin" />验证中…</>
-              : <><LogIn size={11} />{hostCopy.button}</>
-            }
+            {loading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                <span>验证中…</span>
+              </>
+            ) : (
+              <span>{hostCopy.button}</span>
+            )}
           </button>
         </div>
+
+        {/* ⑧ 底部角标 */}
+        <p
+          className="text-center mt-6"
+          style={{
+            fontSize: 11,
+            color: 'var(--muted-foreground, #8e8e93)',
+            letterSpacing: '0.08em',
+            opacity: 0.7,
+          }}
+        >
+          {hostCopy.footer}
+        </p>
       </div>
     </div>
   );
