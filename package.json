@@ -18,7 +18,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "preview:dev": "npm run build:dev && npm run preview",
-    "test:edge-functions": "cd supabase/edge_function && deno task test"
+    "test:edge-functions": "cd supabase/edge_function && deno task test",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "vite build && electron-builder",
+    "electron:pack": "electron-builder --dir"
   },
   "main": "electron/main.cjs",
   "dependencies": {
@@ -90,7 +93,6 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
-
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
@@ -101,25 +103,41 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
-    "electron": "^37.2.0",
-    "electron-builder": "^26.0.12"
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-updater": "^6.1.8",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "wait-on": "^7.2.0",
+    "ts-node": "^10.9.2"
   },
   "build": {
-    "appId": "com.cartierhellos.instantchat",
-    "productName": "Instant Chat Workspace",
+    "appId": "com.carriermiller.instant-chat",
+    "productName": "Instant Chat",
+    "directories": {
+      "output": "dist-electron"
+    },
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "package.json"
+      "public/**/*"
     ],
-    "directories": {
-      "buildResources": "public"
-    },
-    "linux": {
+    "mac": {
       "target": [
-        "AppImage"
+        "dmg",
+        "zip"
       ],
-      "category": "Utility"
+      "category": "public.app-category.business"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }

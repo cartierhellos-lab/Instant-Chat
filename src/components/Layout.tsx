@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { MessageSquare, ListTodo, Settings, RefreshCw, WifiOff, Phone, Users, Smartphone, Wifi, Megaphone, Languages } from 'lucide-react';
+import {
+  MessageSquare, ListTodo, Settings, RefreshCw, WifiOff,
+  Phone, Users, Smartphone, Wifi, Megaphone, Languages, MessageCircle,
+} from 'lucide-react';
 import { ROUTE_PATHS } from '@/lib/index';
 import { useSettingsStore, useChatStore, useAdminStore } from '@/hooks/useStore';
 import { cn } from '@/lib/index';
 import { ensureCommunityRoom, getSubAccounts } from '@/api/supabase';
+// WhatsApp 未读角标
+import { useWhatsAppStore } from '@/pages/WhatsApp';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -12,8 +17,11 @@ export default function Layout() {
   const { startPolling, stopPolling, isLoading, lastError, cloudNumbers, loadCloudPhones } = useChatStore();
   const { currentRole, resolveRole, setRole, setSubAccounts, setRoleResolved } = useAdminStore();
   const pollingKey = useRef<string>('');
-  const [marqueeNotice, setMarqueeNotice] = useState('系统公告：欢迎使用奥贝思维空间站，管理员可在“社群”页面发布最新通知。');
+  const [marqueeNotice, setMarqueeNotice] = useState('系统公告：欢迎使用奥贝思维空间站，管理员可在"社群"页面发布最新通知。');
   const lastNoticeRef = useRef('');
+
+  // WhatsApp 全局未读数（供角标显示）
+  const waUnreadTotal = useWhatsAppStore((s) => s.sessions.reduce((sum, sess) => sum + sess.unreadCount, 0));
 
   const playNoticeTone = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -138,13 +146,14 @@ export default function Layout() {
   const isAdmin = currentRole === 'admin';
 
   const NAV_ITEMS = [
-    { path: ROUTE_PATHS.HOME,     icon: MessageSquare, label: '聊天',   show: true },
-    { path: ROUTE_PATHS.TRANSLATOR, icon: Languages,   label: '翻译',   show: true },
-    { path: ROUTE_PATHS.COMMUNITY, icon: Megaphone,    label: '社群',   show: true },
-    { path: ROUTE_PATHS.ACCOUNTS, icon: Users,         label: '资源',   show: isAdmin },
-    { path: ROUTE_PATHS.PHONES,   icon: Smartphone,    label: '设备',   show: true },
-    { path: ROUTE_PATHS.TASKS,    icon: ListTodo,      label: '群发',   show: true },
-    { path: ROUTE_PATHS.SETTINGS, icon: Settings,      label: '设置',   show: true },
+    { path: ROUTE_PATHS.HOME,       icon: MessageSquare,  label: '聊天',     show: true,      badge: 0 },
+    { path: '/whatsapp',            icon: MessageCircle,  label: 'WhatsApp', show: true,      badge: waUnreadTotal },
+    { path: ROUTE_PATHS.TRANSLATOR, icon: Languages,      label: '翻译',     show: true,      badge: 0 },
+    { path: ROUTE_PATHS.COMMUNITY,  icon: Megaphone,      label: '社群',     show: true,      badge: 0 },
+    { path: ROUTE_PATHS.ACCOUNTS,   icon: Users,          label: '资源',     show: isAdmin,   badge: 0 },
+    { path: ROUTE_PATHS.PHONES,     icon: Smartphone,     label: '设备',     show: true,      badge: 0 },
+    { path: ROUTE_PATHS.TASKS,      icon: ListTodo,       label: '群发',     show: true,      badge: 0 },
+    { path: ROUTE_PATHS.SETTINGS,   icon: Settings,       label: '设置',     show: true,      badge: 0 },
   ];
 
   return (
@@ -166,14 +175,14 @@ export default function Layout() {
 
         {/* Nav tabs — pill 风格 */}
         <nav className="flex items-center gap-0.5 ml-1">
-          {NAV_ITEMS.filter(i => i.show).map(({ path, icon: Icon, label }) => (
+          {NAV_ITEMS.filter(i => i.show).map(({ path, icon: Icon, label, badge }) => (
             <NavLink
               key={path}
               to={path}
               end={path === ROUTE_PATHS.HOME}
               className={({ isActive }) =>
                 cn(
-                  'desktop-nav-item tool-tab h-6 transition-all duration-100',
+                  'desktop-nav-item tool-tab h-6 transition-all duration-100 relative',
                   isActive
                     ? 'desktop-nav-item-active tool-tab-active text-foreground'
                     : 'text-foreground/60 hover:text-foreground hover:bg-white/60'
@@ -182,6 +191,12 @@ export default function Layout() {
             >
               <Icon size={12} strokeWidth={2} />
               <span>{label}</span>
+              {/* 未读角标 */}
+              {badge > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center leading-none pointer-events-none">
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -189,9 +204,9 @@ export default function Layout() {
         {/* 右侧状态区 */}
         <div className="flex items-center gap-1.5 ml-auto">
           {/* 号码计数 */}
-            <span className="text-[9px] text-foreground/40 font-mono">
-              {cloudNumbers.length} 个号码
-            </span>
+          <span className="text-[9px] text-foreground/40 font-mono">
+            {cloudNumbers.length} 个号码
+          </span>
 
           <div className="toolbar-divider" />
 
@@ -210,10 +225,10 @@ export default function Layout() {
             </button>
           )}
           {settings.apiKey && !lastError && !isLoading && (
-              <span className="flex items-center gap-1 text-[9px] text-green-600">
-                <Wifi className="w-3 h-3" />
-                <span>已连接</span>
-              </span>
+            <span className="flex items-center gap-1 text-[9px] text-green-600">
+              <Wifi className="w-3 h-3" />
+              <span>已连接</span>
+            </span>
           )}
 
           {/* Admin badge */}

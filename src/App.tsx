@@ -10,6 +10,7 @@ import Phones from '@/pages/Phones';
 import Tasks from '@/pages/Tasks';
 import SettingsPage from '@/pages/SettingsPage';
 import LoginPage from '@/pages/Login';
+import WhatsAppPage from '@/pages/WhatsApp';
 import { Toaster } from '@/components/ui/toaster';
 
 /** 已验证身份才能访问，否则跳转登录页 */
@@ -59,6 +60,9 @@ export default function App() {
           }
         >
           <Route path={ROUTE_PATHS.HOME} element={<Home />} />
+          {/* ─── WhatsApp 集成页（Home 之后，其他菜单之前） ─────── */}
+          <Route path="/whatsapp" element={<WhatsAppPage />} />
+          {/* ──────────────────────────────────────────────────────── */}
           <Route path={ROUTE_PATHS.TRANSLATOR} element={<TranslatorPage />} />
           <Route path={ROUTE_PATHS.COMMUNITY} element={<CommunityPage />} />
           <Route path={ROUTE_PATHS.ACCOUNTS} element={<Accounts />} />
