@@ -207,7 +207,9 @@ function cdnPrefixImages(): Plugin {
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
+  const isDesktopBuild = process.env.VITE_DESKTOP_BUILD === '1';
   return {
+    base: isDesktopBuild ? './' : '/',
     server: {
       host: "::",
       port: 8080,

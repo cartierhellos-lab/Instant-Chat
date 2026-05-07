@@ -10,6 +10,8 @@ import type {
   TaskResult,
   AccountStatus,
   AppRole,
+  CommunityRoom,
+  CommunityMessage,
 } from '@/lib/index';
 
 // ============================================================
@@ -48,6 +50,20 @@ export function reinitSupabase(url?: string, key?: string): SupabaseClient {
   const config = getSupabaseConfig();
   _supabase = createClient(config.url, config.key);
   return _supabase;
+}
+
+async function ensureCommunityBucket(): Promise<void> {
+  const client = getSupabaseClient();
+  const { data } = await client.storage.listBuckets();
+  if (data?.some((bucket) => bucket.name === 'community-media')) {
+    return;
+  }
+
+  await client.storage.createBucket('community-media', {
+    public: true,
+    fileSizeLimit: 10 * 1024 * 1024,
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+  });
 }
 
 // ============================================================
@@ -156,6 +172,32 @@ export interface ConversationRow {
   contact_number: string;
   unread_count: number;
   last_updated: string;
+}
+
+export interface CommunityRoomRow {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  admin_note?: string | null;
+  marquee_notice?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CommunityMessageRow {
+  id: string;
+  scope: 'room' | 'direct';
+  room_id?: string | null;
+  sender_member_key: string;
+  sender_name: string;
+  sender_role: AppRole;
+  target_member_key?: string | null;
+  target_name?: string | null;
+  body: string;
+  image_url?: string | null;
+  image_name?: string | null;
+  created_at: string;
 }
 
 // ============================================================
@@ -394,6 +436,74 @@ function conversationToRow(conv: Omit<Conversation, 'id' | 'messages' | 'lastMes
     contact_number: conv.contactNumber,
     unread_count: conv.unreadCount,
     last_updated: conv.lastUpdated,
+  };
+}
+
+function rowToCommunityRoom(row: CommunityRoomRow): CommunityRoom {
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    description: row.description ?? undefined,
+    adminNote: row.admin_note ?? undefined,
+    marqueeNotice: row.marquee_notice ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function communityRoomToRow(
+  room: Omit<CommunityRoom, 'id' | 'createdAt' | 'updatedAt'> & {
+    id?: string;
+    createdAt?: string;
+    updatedAt?: string;
+  }
+): Omit<CommunityRoomRow, 'id'> & { id?: string } {
+  return {
+    ...(room.id ? { id: room.id } : {}),
+    slug: room.slug,
+    name: room.name,
+    description: room.description ?? null,
+    admin_note: room.adminNote ?? null,
+    marquee_notice: room.marqueeNotice ?? null,
+    created_at: room.createdAt ?? new Date().toISOString(),
+    updated_at: room.updatedAt ?? new Date().toISOString(),
+  };
+}
+
+function rowToCommunityMessage(row: CommunityMessageRow): CommunityMessage {
+  return {
+    id: row.id,
+    scope: row.scope,
+    roomId: row.room_id ?? undefined,
+    senderMemberKey: row.sender_member_key,
+    senderName: row.sender_name,
+    senderRole: row.sender_role,
+    targetMemberKey: row.target_member_key ?? undefined,
+    targetName: row.target_name ?? undefined,
+    body: row.body,
+    imageUrl: row.image_url ?? undefined,
+    imageName: row.image_name ?? undefined,
+    createdAt: row.created_at,
+  };
+}
+
+function communityMessageToRow(
+  message: Omit<CommunityMessage, 'id' | 'createdAt'> & { id?: string; createdAt?: string }
+): Omit<CommunityMessageRow, 'id'> & { id?: string } {
+  return {
+    ...(message.id ? { id: message.id } : {}),
+    scope: message.scope,
+    room_id: message.roomId ?? null,
+    sender_member_key: message.senderMemberKey,
+    sender_name: message.senderName,
+    sender_role: message.senderRole,
+    target_member_key: message.targetMemberKey ?? null,
+    target_name: message.targetName ?? null,
+    body: message.body,
+    image_url: message.imageUrl ?? null,
+    image_name: message.imageName ?? null,
+    created_at: message.createdAt ?? new Date().toISOString(),
   };
 }
 
@@ -874,4 +984,129 @@ export const testSupabaseConnection = async (): Promise<{ ok: boolean; message: 
   } catch (e) {
     return { ok: false, message: (e as Error).message };
   }
+};
+
+// ============================================================
+// community_rooms / community_messages
+// ============================================================
+
+export const ensureCommunityRoom = async (): Promise<CommunityRoom> => {
+  const { data } = await getSupabaseClient()
+    .from('community_rooms')
+    .select('*')
+    .eq('slug', 'main')
+    .maybeSingle();
+
+  if (data) {
+    return rowToCommunityRoom(data as CommunityRoomRow);
+  }
+
+  const row = communityRoomToRow({
+    slug: 'main',
+    name: '奥贝思维空间站社群',
+    description: '管理员分发下的子账号统一交流频道',
+    adminNote: '管理员可编辑社群公告、说明和备注。',
+    marqueeNotice: '系统公告：欢迎使用奥贝思维空间站，管理员可在社群页面发布通知。',
+  });
+
+  const { data: created, error } = await getSupabaseClient()
+    .from('community_rooms')
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return rowToCommunityRoom(created as CommunityRoomRow);
+};
+
+export const updateCommunityRoom = async (
+  id: string,
+  updates: Partial<Omit<CommunityRoom, 'id' | 'slug' | 'createdAt'>>
+): Promise<CommunityRoom> => {
+  const partialRow: Partial<CommunityRoomRow> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (updates.name !== undefined) partialRow.name = updates.name;
+  if (updates.description !== undefined) partialRow.description = updates.description ?? null;
+  if (updates.adminNote !== undefined) partialRow.admin_note = updates.adminNote ?? null;
+  if (updates.marqueeNotice !== undefined) partialRow.marquee_notice = updates.marqueeNotice ?? null;
+
+  const { data, error } = await getSupabaseClient()
+    .from('community_rooms')
+    .update(partialRow)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return rowToCommunityRoom(data as CommunityRoomRow);
+};
+
+export const getCommunityMessages = async (roomId: string): Promise<CommunityMessage[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('community_messages')
+    .select('*')
+    .eq('scope', 'room')
+    .eq('room_id', roomId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data as CommunityMessageRow[]).map(rowToCommunityMessage);
+};
+
+export const getDirectMessages = async (
+  memberKey: string,
+  peerKey: string
+): Promise<CommunityMessage[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from('community_messages')
+    .select('*')
+    .eq('scope', 'direct')
+    .or(
+      `and(sender_member_key.eq.${memberKey},target_member_key.eq.${peerKey}),and(sender_member_key.eq.${peerKey},target_member_key.eq.${memberKey})`
+    )
+    .order('created_at', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data as CommunityMessageRow[]).map(rowToCommunityMessage);
+};
+
+export const createCommunityMessage = async (
+  message: Omit<CommunityMessage, 'id' | 'createdAt'>
+): Promise<CommunityMessage> => {
+  const row = communityMessageToRow(message);
+  const { data, error } = await getSupabaseClient()
+    .from('community_messages')
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return rowToCommunityMessage(data as CommunityMessageRow);
+};
+
+export const uploadCommunityImage = async (
+  file: File,
+  memberKey: string
+): Promise<{ imageUrl: string; imageName: string }> => {
+  await ensureCommunityBucket();
+
+  const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')) : '';
+  const safeExt = ext.toLowerCase();
+  const path = `${memberKey}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}${safeExt}`;
+  const client = getSupabaseClient();
+  const { error } = await client.storage
+    .from('community-media')
+    .upload(path, file, {
+      upsert: false,
+      contentType: file.type || 'application/octet-stream',
+    });
+
+  if (error) throw new Error(error.message);
+
+  const { data } = client.storage.from('community-media').getPublicUrl(path);
+  return {
+    imageUrl: data.publicUrl,
+    imageName: file.name,
+  };
 };

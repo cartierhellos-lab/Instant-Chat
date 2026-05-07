@@ -1,25 +1,91 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LogIn, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, AlertCircle, MessageCircle } from 'lucide-react';
 import { useSettingsStore, useAdminStore, useChatStore } from '@/hooks/useStore';
-import { ROUTE_PATHS } from '@/lib/index';
+import { ROUTE_PATHS, ADMIN_HOSTNAME, USER_HOSTNAME, getHostMode } from '@/lib/index';
+import { getSubAccounts } from '@/api/supabase';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { settings, updateSettings } = useSettingsStore();
-  const { setRole, subAccounts } = useAdminStore();
+  const { setRole, subAccounts, setSubAccounts, setRoleResolved } = useAdminStore();
   const { startPolling } = useChatStore();
+  const hostMode = getHostMode();
 
   const [key, setKey] = useState('');
   const [show, setShow] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const isAdminSession =
+    settings.accessKey === '' ||
+    (!!settings.apiKey && settings.accessKey === settings.apiKey);
+  const isUserSession =
+    settings.accessKey !== undefined && !isAdminSession;
+
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const accounts = await getSubAccounts();
+        if (!cancelled) {
+          setSubAccounts(accounts);
+          setRoleResolved(true);
+        }
+      } catch {
+        // keep local fallback list
+        if (!cancelled) {
+          setRoleResolved(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setRoleResolved, setSubAccounts]);
+
+  const hostCopy = hostMode === 'admin'
+    ? {
+        subtitle: '· 奥贝思维空间站 管理后台',
+        prompt: `输入管理员 API Key 进入管理后台。子账号请使用 ${USER_HOSTNAME} 登录。`,
+        footer: 'AOBESIWEI ADMIN',
+        button: '进入管理后台',
+        placeholder: '输入管理员 API Key…',
+      }
+    : hostMode === 'user'
+      ? {
+          subtitle: '· 奥贝思维空间站 用户入口',
+          prompt: `输入子账号密钥访问分配资源。管理员请使用 ${ADMIN_HOSTNAME} 登录。`,
+          footer: 'AOBESIWEI USER',
+          button: '进入用户系统',
+          placeholder: '输入子账号密钥…',
+        }
+      : {
+          subtitle: '· 奥贝思维空间站',
+          prompt: '输入管理员 API Key 或子账号密钥进入系统。',
+          footer: 'AOBESIWEI',
+          button: '进入系统',
+          placeholder: '粘贴密钥…',
+        };
+
+  useEffect(() => {
+    if (settings.accessKey === undefined) return;
+
+    if (hostMode === 'admin' && isUserSession) {
+      setError(`子账号请使用 ${USER_HOSTNAME} 登录`);
+      return;
+    }
+
+    if (hostMode === 'user' && isAdminSession) {
+      setError(`管理员请使用 ${ADMIN_HOSTNAME} 登录`);
+      return;
+    }
+
     if (settings.accessKey !== undefined) {
       navigate(ROUTE_PATHS.HOME, { replace: true });
     }
-  }, []);
+  }, [hostMode, isAdminSession, isUserSession, navigate, settings.accessKey]);
 
   const handleLogin = async () => {
     const trimmed = key.trim();
@@ -33,6 +99,18 @@ export default function LoginPage() {
     const isAdminKey = savedApiKey && trimmed === savedApiKey;
     const looksLikeApiKey = /^[0-9a-f-]{32,}$/i.test(trimmed);
     const matchedSub = subAccounts.find(s => s.key === trimmed);
+
+    if (hostMode === 'admin' && matchedSub) {
+      setError(`子账号请使用 ${USER_HOSTNAME} 登录`);
+      setLoading(false);
+      return;
+    }
+
+    if (hostMode === 'user' && (isAdminKey || (isFirstTime && looksLikeApiKey))) {
+      setError(`管理员请使用 ${ADMIN_HOSTNAME} 登录`);
+      setLoading(false);
+      return;
+    }
 
     if (isFirstTime && looksLikeApiKey) {
       updateSettings({ apiKey: trimmed, accessKey: '' });
@@ -64,72 +142,124 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center w-screen h-screen bg-[#f0f0f0]">
-      {/* 居中卡片 — macOS 偏好设置风格 */}
-      <div className="w-[380px] bg-white border border-[#d0d0d0] rounded-xl shadow-float overflow-hidden">
-
-        {/* 标题栏 */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-[#f5f5f5] border-b border-[#d8d8d8]">
-          <div className="w-4 h-4 rounded-[4px] bg-primary flex items-center justify-center">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.93 12 19.79 19.79 0 0 1 1.9 3.38 2 2 0 0 1 3.68 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.65a16 16 0 0 0 6.44 6.44l1.02-1.01a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
-            </svg>
+    <div
+      className="flex items-center justify-center w-screen h-screen px-4"
+      style={{ background: '#eef1f4' }}
+    >
+      <div
+        className="ios-login-panel animate-spring-in"
+        style={{ width: 380, padding: '28px 26px' }}
+      >
+        <div className="flex flex-col items-center gap-2 mb-5">
+          <div
+            className="flex items-center justify-center rounded-[8px] shadow-btn"
+            style={{
+              width: 38,
+              height: 38,
+              background: 'linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)',
+            }}
+          >
+            <MessageCircle size={18} color="white" strokeWidth={2} />
           </div>
-          <span className="text-[12px] font-semibold text-foreground/80">Instant Chat</span>
-          <span className="text-[10px] text-muted-foreground ml-1">· CartierMiller 管理平台</span>
+
+          <div className="text-center">
+            <h1
+              className="font-bold text-center"
+              style={{ fontSize: 18, color: '#1f2328', letterSpacing: '-0.015em' }}
+            >
+              Instant Chat
+            </h1>
+
+            <p
+              className="text-center mt-1"
+              style={{ fontSize: 12, color: 'var(--muted-foreground, #6b7280)' }}
+            >
+              {hostCopy.subtitle}
+            </p>
+          </div>
         </div>
 
-        {/* 表单区 */}
-        <div className="px-6 py-6 space-y-4">
-          {/* 提示文字 */}
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            输入 CartierMiller API Key 以管理员身份进入，或输入子账号密钥访问分配的资源。
-          </p>
+        <div className="space-y-2.5">
+          <div className="relative">
+            <Lock
+              size={13}
+              className="absolute top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ left: 10, color: 'var(--muted-foreground, #6b7280)' }}
+            />
 
-          {/* 输入框 */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-medium text-foreground/70">访问密钥</label>
-            <div className="relative">
-              <input
-                type={show ? 'text' : 'password'}
-                value={key}
-                onChange={e => { setKey(e.target.value); setError(''); }}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                placeholder="粘贴密钥…"
-                autoComplete="off"
-                autoFocus
-                className="w-full h-8 px-2.5 pr-8 rounded border border-[#c8c8c8] bg-white text-[12px] text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all font-mono"
-                style={{ borderColor: error ? '#ef4444' : undefined }}
-              />
-              <button
-                type="button"
-                tabIndex={-1}
-                onClick={() => setShow(s => !s)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
-              >
-                {show ? <EyeOff size={12} /> : <Eye size={12} />}
-              </button>
+            <input
+              type={show ? 'text' : 'password'}
+              value={key}
+              onChange={e => { setKey(e.target.value); setError(''); }}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder={hostCopy.placeholder}
+              autoComplete="off"
+              autoFocus
+              className="tool-input w-full"
+              style={{
+                height: 38,
+                fontSize: 13,
+                paddingLeft: 34,
+                paddingRight: 34,
+                borderColor: error ? '#ff3b30' : undefined,
+              }}
+            />
+
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShow(s => !s)}
+              className="absolute top-1/2 -translate-y-1/2 transition-colors"
+              style={{
+                right: 10,
+                color: 'var(--muted-foreground, #6b7280)',
+              }}
+            >
+              {show ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-1.5" style={{ color: '#ff3b30', fontSize: 12 }}>
+              <AlertCircle size={13} />
+              <span>{error}</span>
             </div>
-            {error && (
-              <p className="text-[11px] text-red-500">{error}</p>
-            )}
-          </div>
-        </div>
+          )}
 
-        {/* 底部操作栏 */}
-        <div className="flex items-center justify-between px-6 py-3 bg-[#f5f5f5] border-t border-[#d8d8d8]">
-          <span className="text-[10px] text-muted-foreground/60 font-mono tracking-wider">CARTIER MILLER</span>
+          <div
+            className="text-center px-1"
+            style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--muted-foreground, #6b7280)' }}
+          >
+            {hostCopy.prompt}
+          </div>
           <button
             onClick={handleLogin}
             disabled={loading || !key.trim()}
-            className="flex items-center gap-1.5 h-7 px-4 rounded bg-primary text-white text-[11px] font-semibold shadow-btn hover:opacity-90 active:opacity-80 disabled:opacity-40 transition-opacity"
+            className="ios-btn ios-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40"
+            style={{ height: 36, fontSize: 13, borderRadius: 6 }}
           >
-            {loading
-              ? <><Loader2 size={11} className="animate-spin" />验证中…</>
-              : <><LogIn size={11} />进入系统</>
-            }
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>验证中…</span>
+              </>
+            ) : (
+              <span>{hostCopy.button}</span>
+            )}
           </button>
         </div>
+
+        <p
+          className="text-center mt-5"
+          style={{
+            fontSize: 10,
+            color: 'var(--muted-foreground, #6b7280)',
+            letterSpacing: '0.14em',
+            opacity: 0.8,
+          }}
+        >
+          {hostCopy.footer}
+        </p>
       </div>
     </div>
   );

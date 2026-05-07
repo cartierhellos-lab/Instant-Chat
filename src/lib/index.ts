@@ -3,6 +3,8 @@
 // ============================================================
 export const ROUTE_PATHS = {
   HOME: '/',
+  TRANSLATOR: '/translator',
+  COMMUNITY: '/community',
   ACCOUNTS: '/accounts',
   PHONES: '/phones',
   TASKS: '/tasks',
@@ -10,6 +12,29 @@ export const ROUTE_PATHS = {
   ADMIN: '/admin',
   LOGIN: '/login',
 };
+
+export type HostMode = 'admin' | 'user' | 'default';
+
+export const INTERNAL_ADMIN_HOSTNAME = 'admin.cartiermiller.cc.cd';
+export const INTERNAL_USER_HOSTNAME = 'app.cartiermiller.cc.cd';
+export const EXTERNAL_HOSTNAME = 'hkd.llc';
+export const EXTERNAL_ADMIN_HOSTNAME = 'admin.hkd.llc';
+export const EXTERNAL_USER_HOSTNAME = 'app.hkd.llc';
+export const ADMIN_HOSTNAME = INTERNAL_ADMIN_HOSTNAME;
+export const USER_HOSTNAME = INTERNAL_USER_HOSTNAME;
+
+const ADMIN_HOSTS = new Set([INTERNAL_ADMIN_HOSTNAME, EXTERNAL_ADMIN_HOSTNAME]);
+const USER_HOSTS = new Set([INTERNAL_USER_HOSTNAME, EXTERNAL_USER_HOSTNAME]);
+
+export function getHostMode(hostname?: string): HostMode {
+  const current =
+    hostname ??
+    (typeof window !== 'undefined' ? window.location.hostname : '');
+
+  if (ADMIN_HOSTS.has(current)) return 'admin';
+  if (USER_HOSTS.has(current)) return 'user';
+  return 'default';
+}
 
 // ============================================================
 // Roles & Auth
@@ -49,6 +74,43 @@ export interface AppSettings {
   ollamaUrl?: string;
   /** Ollama 翻译模型名，默认 qwen2:7b */
   ollamaModel?: string;
+  /** 是否显示顶部公告滚动栏 */
+  marqueeEnabled?: boolean;
+  /** 公告滚动一轮时长（秒） */
+  marqueeDuration?: number;
+}
+
+export interface CommunityRoom {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  adminNote?: string;
+  marqueeNotice?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommunityMessage {
+  id: string;
+  scope: 'room' | 'direct';
+  roomId?: string;
+  senderMemberKey: string;
+  senderName: string;
+  senderRole: AppRole;
+  targetMemberKey?: string;
+  targetName?: string;
+  body: string;
+  imageUrl?: string;
+  imageName?: string;
+  createdAt: string;
+}
+
+export interface CommunityMember {
+  key: string;
+  name: string;
+  role: AppRole;
+  note?: string;
 }
 
 export interface CloudNumber {
@@ -198,7 +260,78 @@ export const DEFAULT_SETTINGS: AppSettings = {
   translateEngine: 'mymemory',
   ollamaUrl: 'http://localhost:11434',
   ollamaModel: 'qwen2:7b',
+  marqueeEnabled: true,
+  marqueeDuration: 60,
 };
+
+const SHARED_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+const SHARED_DOMAIN_ROOTS = ['cartiermiller.cc.cd', 'hkd.llc'] as const;
+
+export function getSharedCookieDomain(hostname?: string): string | null {
+  const current =
+    hostname ??
+    (typeof window !== 'undefined' ? window.location.hostname : '');
+
+  for (const root of SHARED_DOMAIN_ROOTS) {
+    if (current === root || current.endsWith(`.${root}`)) {
+      return `.${root}`;
+    }
+  }
+  return null;
+}
+
+export function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const prefix = `${name}=`;
+  const cookie = document.cookie
+    .split('; ')
+    .find((item) => item.startsWith(prefix));
+  if (!cookie) return null;
+  return decodeURIComponent(cookie.slice(prefix.length));
+}
+
+export function writeSharedCookie(name: string, value: string): void {
+  if (typeof document === 'undefined') return;
+  const domain = getSharedCookieDomain();
+  document.cookie = [
+    `${name}=${encodeURIComponent(value)}`,
+    'path=/',
+    `max-age=${SHARED_COOKIE_MAX_AGE}`,
+    'SameSite=Lax',
+    domain ? `domain=${domain}` : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
+}
+
+export function getSharedSettings(): Partial<AppSettings> {
+  const region = readCookie('cm_api_region');
+  const pollInterval = readCookie('cm_poll_interval');
+
+  return {
+    apiKey: readCookie('cm_api_key') ?? DEFAULT_SETTINGS.apiKey,
+    apiRegion: region === 'cn' || region === 'global' ? region : DEFAULT_SETTINGS.apiRegion,
+    pollInterval: pollInterval ? Number(pollInterval) || DEFAULT_SETTINGS.pollInterval : DEFAULT_SETTINGS.pollInterval,
+    adbCommandTemplate: readCookie('cm_adb_template') ?? DEFAULT_SETTINGS.adbCommandTemplate,
+    translateEngine: readCookie('cm_translate_engine') === 'ollama' ? 'ollama' : DEFAULT_SETTINGS.translateEngine,
+    ollamaUrl: readCookie('cm_ollama_url') ?? DEFAULT_SETTINGS.ollamaUrl,
+    ollamaModel: readCookie('cm_ollama_model') ?? DEFAULT_SETTINGS.ollamaModel,
+    marqueeEnabled: readCookie('cm_marquee_enabled') !== 'false',
+    marqueeDuration: Number(readCookie('cm_marquee_duration')) || DEFAULT_SETTINGS.marqueeDuration,
+  };
+}
+
+export function syncSharedSettings(settings: AppSettings): void {
+  writeSharedCookie('cm_api_key', settings.apiKey);
+  writeSharedCookie('cm_api_region', settings.apiRegion);
+  writeSharedCookie('cm_poll_interval', String(settings.pollInterval));
+  writeSharedCookie('cm_adb_template', settings.adbCommandTemplate);
+  writeSharedCookie('cm_translate_engine', settings.translateEngine ?? 'mymemory');
+  writeSharedCookie('cm_ollama_url', settings.ollamaUrl ?? DEFAULT_SETTINGS.ollamaUrl ?? '');
+  writeSharedCookie('cm_ollama_model', settings.ollamaModel ?? DEFAULT_SETTINGS.ollamaModel ?? '');
+  writeSharedCookie('cm_marquee_enabled', String(settings.marqueeEnabled ?? true));
+  writeSharedCookie('cm_marquee_duration', String(settings.marqueeDuration ?? DEFAULT_SETTINGS.marqueeDuration ?? 60));
+}
 
 // ============================================================
 // Utils

@@ -71,7 +71,22 @@ export async function testOllamaConnection(
     const models = (json.models ?? []).map((m) => m.name);
     return { ok: true, models };
   } catch (e) {
-    return { ok: false, models: [], error: (e as Error).message };
+    const message = (e as Error).message;
+    const isBrowserLocalhost =
+      typeof window !== 'undefined' &&
+      /localhost|127\.0\.0\.1/.test(ollamaUrl) &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1';
+
+    if (isBrowserLocalhost) {
+      return {
+        ok: false,
+        models: [],
+        error: '当前网页运行在远程域名，无法访问你本机的 localhost:11434。请改为可公网访问的 Ollama 地址，或切换到 MyMemory。',
+      };
+    }
+
+    return { ok: false, models: [], error: message };
   }
 }
 
